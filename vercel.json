@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": null,
+  "functions": { "api/**/*.ts": { "maxDuration": 60 } },
+  "rewrites": [
+    { "source": "/:code([A-Za-z]{4})", "destination": "/import/?c=:code" }
+  ],
+  "headers": [
+    { "source": "/app/(.*)", "headers": [{ "key": "Permissions-Policy", "value": "microphone=(self), xr-spatial-tracking=(self)" }] }
+  ]
+}

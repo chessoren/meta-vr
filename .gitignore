@@ -1,0 +1,10 @@
+node_modules
+dist
+.vercel
+test-results
+playwright-report
+*.log
+.env
+.env.local
+public/models/vosk-*
+tests/e2e/__screens__/tmp
