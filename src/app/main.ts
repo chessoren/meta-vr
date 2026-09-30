@@ -365,6 +365,16 @@ function installDebugHooks(app: App) {
       }
       return worst;
     },
+    menuButton: (id: string) => {
+      const b = app.menu.buttons.find((x) => x.id === id);
+      const v = b ? b.center(new THREE.Vector3()) : new THREE.Vector3();
+      return [v.x, v.y, v.z];
+    },
+    shelfBook: (id: string) => {
+      const b = app.shelf.buttons.find((x) => x.id === id);
+      const v = b ? b.center(new THREE.Vector3()) : new THREE.Vector3();
+      return [v.x, v.y, v.z];
+    },
     /** World position of a placed notion's scene / a bubble / the flame (for tests). */
     posOf: (what: string) => {
       const v = new THREE.Vector3();
@@ -390,6 +400,9 @@ function installDebugHooks(app: App) {
       bubbles: app.bubbles.map((b) => b.root.visible),
       proof: app.proof.root.visible,
       qr: app.qr.root.visible,
+      menu: app.menu.root.visible,
+      shelf: app.shelf.root.visible,
+      shelfBooks: app.shelf.buttons.map((b) => b.id),
       flameVisible: app.flame.root.visible,
       options: app.debug.options ?? null,
       currentNotion: app.debug.notion ?? null,

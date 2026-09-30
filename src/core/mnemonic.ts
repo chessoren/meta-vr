@@ -321,7 +321,7 @@ interface Word {
 
 const ELISION = /(?<![\p{L}])(?:qu|[dljmnstc])['’](?=\p{L})/giu;
 
-function tokenize(text: string): Word[] {
+export function tokenize(text: string): Word[] {
   const src = String(text ?? '').replace(ELISION, ' ');
   const out: Word[] = [];
   let first = true;
@@ -404,7 +404,7 @@ function meaningLink(w: Word, inf: EntryInfo): number {
 }
 
 /** Every link from a list of words to the catalog (several per entry possible). */
-function linksFor(ws: Word[], source: 'answer' | 'question'): Link[] {
+export function linksFor(ws: Word[], source: 'answer' | 'question'): Link[] {
   const out: Link[] = [];
   const all = info();
   const phrase = ` ${ws.map((w) => w.norm).join(' ')} `;

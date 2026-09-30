@@ -406,7 +406,7 @@ export class App {
     const furn = () => this.room.furniture().filter((f) => this.room.isSeen(f.id) || f.label === 'manual');
     const m4 = new THREE.Matrix4();
     let placed: Placement | null = null;
-    this.menuAllowed = false;
+    // The palm menu stays available until the scene is grabbed (switch palace, import, exit…).
     try {
       await until(() => {
         spinT += XR.dt;
@@ -416,8 +416,9 @@ export class App {
           holder.position.y = rest.y + Math.sin(spinT * 2) * 0.008;
           // Any pinch grabs the presented scene (forgiving); prefer the hand nearest to it.
           const h = [Hands.right, Hands.left].find((hh) => hh.pinchStarted);
-          if (h) {
+          if (h && this.menuOpenFor === 0) {
             held = h;
+            this.menuAllowed = false;
             grabOffset.copy(holder.position).sub(h.pinchPoint);
             if (grabOffset.length() > 0.2) grabOffset.setLength(0.06);
             sfx.play('pinch', holder.position);
@@ -450,6 +451,7 @@ export class App {
           if (target) return true;
           // Released on nothing: float back to the hands.
           held = null;
+          this.menuAllowed = true;
           sfx.play('release', holder.position);
           this.card.setVisible(true, true);
         }

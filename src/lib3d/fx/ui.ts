@@ -1389,27 +1389,33 @@ export class PalaceShelf extends Panel {
     const tlh = tf.px * 1.12;
     const ty = y + 200;
     tf.lines.forEach((l, k) => ctx.fillText(l, cx, ty + tlh * (k + 0.5)));
-    // progress
+    // progress (a book with no notions yet — e.g. "New from phone" — shows a plus instead)
     const py = y + bh - 300;
-    const barW = bw - 50;
-    rrect(ctx, cx - barW / 2, py, barW, 22, 11);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fill();
-    const frac = b.total > 0 ? clamp01(b.solid / b.total) : 0;
-    if (frac > 0) {
-      rrect(ctx, cx - barW / 2, py, Math.max(22, barW * frac), 22, 11);
-      const pg = ctx.createLinearGradient(0, py, 0, py + 22);
-      pg.addColorStop(0, '#ffe08a');
-      pg.addColorStop(1, '#c9973d');
-      ctx.fillStyle = pg;
+    if (b.total > 0) {
+      const barW = bw - 50;
+      rrect(ctx, cx - barW / 2, py, barW, 22, 11);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fill();
+      const frac = b.total > 0 ? clamp01(b.solid / b.total) : 0;
+      if (frac > 0) {
+        rrect(ctx, cx - barW / 2, py, Math.max(22, barW * frac), 22, 11);
+        const pg = ctx.createLinearGradient(0, py, 0, py + 22);
+        pg.addColorStop(0, '#ffe08a');
+        pg.addColorStop(1, '#c9973d');
+        ctx.fillStyle = pg;
+        ctx.fill();
+      }
+      ctx.font = font(700, 40);
+      ctx.fillStyle = '#fbefd6';
+      ctx.fillText(`${b.solid}/${b.total}`, cx, py + 66);
+      ctx.font = font(600, 28, true);
+      ctx.fillStyle = 'rgba(251,239,214,0.8)';
+      ctx.fillText('solid', cx, py + 104);
+    } else {
+      ctx.font = font(700, 72);
+      ctx.fillStyle = '#fbefd6';
+      ctx.fillText('+', cx, py + 40);
     }
-    ctx.font = font(700, 40);
-    ctx.fillStyle = '#fbefd6';
-    ctx.fillText(`${b.solid}/${b.total}`, cx, py + 66);
-    ctx.font = font(600, 28, true);
-    ctx.fillStyle = 'rgba(251,239,214,0.8)';
-    ctx.fillText('solid', cx, py + 104);
     // exam countdown
     if (b.examInDays !== undefined && b.examInDays !== null) {
       const d = Math.max(0, Math.round(b.examInDays));

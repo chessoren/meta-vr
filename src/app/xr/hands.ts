@@ -11,7 +11,7 @@ export type Handedness = 'left' | 'right';
 
 const PINCH_ON = 0.018;
 const PINCH_OFF = 0.034;
-const FIST_TIP_DIST = 0.06;
+const FIST_TIP_DIST = 0.055;
 
 export interface HandState {
   handedness: Handedness;
@@ -159,7 +159,8 @@ export function updateHands(frame: XRFrame, ref: XRReferenceSpace, dt: number, t
         }
       }
     }
-    const fist = Hands.force.fist === h.handedness || curled;
+    // Only a fist shown in front of the eyes counts: a relaxed hand curled on the lap must never exit.
+    const fist = Hands.force.fist === h.handedness || (curled && inView);
     h.fist = fist;
     h.fistTime = fist ? h.fistTime + dt : 0;
 

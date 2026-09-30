@@ -19,6 +19,9 @@ export type State = {
   due: string[];
   presenting: string | null;
   pair: string | null;
+  menu: boolean;
+  shelf: boolean;
+  shelfBooks: string[];
 };
 
 export const st = (page: Page) => page.evaluate(() => (window as any).__loci.state() as State);
