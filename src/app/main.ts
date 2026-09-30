@@ -118,6 +118,19 @@ async function boot() {
   }
   // Voice answers are opt-in (microphone permission must be asked in 2D, before entering).
   void offerVoice(ui.el);
+
+  // Installed PWA on Horizon OS: there is no page to click — the app-icon tap is the user
+  // activation, spent immediately on entering mixed reality (Meta's recommended pattern).
+  if ('getDigitalGoodsService' in window && !emu) {
+    navigator.xr
+      ?.isSessionSupported('immersive-ar')
+      .then((ok) => ok && enter())
+      .catch(() => {});
+  }
+  // Offline after the first launch (built-in palaces never need the network).
+  if (import.meta.env.PROD && 'serviceWorker' in navigator && !emu) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((e) => console.info('[loci] no service worker', e));
+  }
 }
 
 async function offerVoice(el: HTMLElement) {
