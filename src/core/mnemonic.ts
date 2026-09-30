@@ -27,9 +27,10 @@
  *    movement the notion names (fall → shake), or its natural anim. For a number/date/formula
  *    answer the hero comes from the question and the number is carried by a count + a label. The
  *    last model of `avoid` (the previous notion's hero) is not reused when anything else fits.
- * 4. **Second actor**: the other half of the pun (CAN-BERRA → can + kangaroo's berries, OTTA-WA →
- *    otter + wave, POWER-HOUSE → house + lightning), else a **question prop** linked to the
- *    question (Kenya → key, Mona Lisa → moon), so the scene binds Q → A.
+ * 4. **Second actor**: the other half of the pun (CAN-BER-ra → can + bear, OTTA-WA → otter +
+ *    wave, POWER-HOUSE → house + lightning), and a **question prop** linked to the question
+ *    (Kenya → key, Mona Lisa → moon, Australia → kangaroo) — by meaning when it can — so the scene
+ *    binds Q → A.
  * 5. **Numbers**: years/dates → a brass plaque with the year or date; a salient digit 1–12 → that
  *    many copies of a model tied to the question (1914 → 4 helmets) or of a toy.
  * 6. **Label** only when needed (numbers, formulas, weak or meaning-only links): the whole answer
@@ -353,6 +354,8 @@ interface Word {
   bonus: number;
   /** A merged fixed pair ("World War"): a meaning, never a pun. */
   pair?: boolean;
+  /** The source chunk the word came from ("D-Day" for d and day). */
+  chunk?: string;
 }
 
 const ELISION = /(?<![\p{L}])(?:qu|[dljmnstc])['’](?=\p{L})/giu;
@@ -376,7 +379,7 @@ function tokenize(text: string): Word[] {
     const capital = /^\p{Lu}/u.test(raw);
     for (const t of toks) {
       const w = makeWord(t, toks.length === 1 ? raw : t, !first && capital, capital);
-      (w as Word & { chunk?: string }).chunk = raw;
+      w.chunk = raw;
       out.push(w);
     }
     first = false;
@@ -388,8 +391,7 @@ function tokenize(text: string): Word[] {
     const b = out[i + 1];
     const pair = b ? PAIRS[`${a.norm} ${b.norm}`] : undefined;
     if (pair && b) {
-      const ca = (a as Word & { chunk?: string }).chunk;
-      const raw = ca && ca === (b as Word & { chunk?: string }).chunk ? ca : `${a.raw} ${b.raw}`;
+      const raw = a.chunk && a.chunk === b.chunk ? a.chunk : `${a.raw} ${b.raw}`;
       const w = makeWord(pair, raw, a.proper || b.proper, a.capital);
       w.pair = true;
       merged.push(w);
@@ -776,7 +778,8 @@ interface PunCut {
 function punDisplay(w: Word, cut: PunCut | null): string {
   if (w.pair || w.norm.includes(' ')) return upper(w.raw);
   const src = fold(w.raw) === w.norm ? w.raw : w.norm;
-  if (!cut || (cut.start === 0 && cut.end >= src.length && !cut.second)) return upper(src);
+  // Whole word, or a pun that leaves a single stray letter ("BER-n"): show the word in CAPS.
+  if (!cut || (!cut.second && !cut.lead && src.length - (cut.end - cut.start) <= 1)) return upper(src);
   const marks = new Set([0, src.length, cut.start, cut.end]);
   if (cut.lead) marks.add(cut.lead);
   if (cut.second) {
