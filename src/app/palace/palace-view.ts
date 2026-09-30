@@ -41,6 +41,8 @@ export class PalaceView {
   progress: PalaceProgress | null = null;
   readonly items = new Map<string, Item>();
   private halos = new Map<string, IHalo>();
+  /** Hand-placed wall anchors are real objects too: a small floating candle-lantern. */
+  private lanterns = new Map<string, IScene>();
   private haloOverride = new Map<string, HaloState>();
   private globalHalo: HaloState | null = null;
   private emberMat = new THREE.MeshBasicMaterial({ color: '#ffcf7a', transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
@@ -55,6 +57,7 @@ export class PalaceView {
     this.palace = palace;
     this.progress = progress;
     for (const p of progress.placements) this.addItem(p);
+    this.showLanterns();
     this.refreshTiers(false);
   }
 
@@ -67,6 +70,8 @@ export class PalaceView {
     this.items.clear();
     for (const h of this.halos.values()) h.dispose();
     this.halos.clear();
+    for (const l of this.lanterns.values()) l.dispose();
+    this.lanterns.clear();
     this.haloOverride.clear();
     this.palace = null;
     this.progress = null;
@@ -142,6 +147,19 @@ export class PalaceView {
     this.room.root.add(h.root);
     h.setState('off');
     this.halos.set(fid, h);
+    if (f.label === 'manual' && !this.lanterns.has(fid)) {
+      const lantern = V.scene({ actors: [{ model: 'candle', role: 'hero', anim: 'float' }], caption: 'Lantern', accent: '#ffd27a' });
+      lantern.root.position.set(f.center[0], f.center[1] - 0.09, f.center[2]);
+      lantern.root.scale.setScalar(0.45);
+      lantern.setAppearance('full');
+      this.room.root.add(lantern.root);
+      this.lanterns.set(fid, lantern);
+    }
+  }
+
+  /** Make sure every hand-placed lantern of the room is visible (even with no notion on it yet). */
+  showLanterns() {
+    for (const f of this.room.furniture()) if (f.label === 'manual') this.ensureHalo(f.id);
   }
 
   /** Halo for any furniture (also ones without notions: scan & placement highlights). */
@@ -263,6 +281,7 @@ export class PalaceView {
       const cur = haloState.get(it.placement.furnitureId) ?? 'off';
       if (rank[hs] > rank[cur]) haloState.set(it.placement.furnitureId, hs);
     }
+    for (const l of this.lanterns.values()) l.update(dt, t);
     for (const [fid, h] of this.halos) {
       const s = this.haloOverride.get(fid) ?? this.globalHalo ?? haloState.get(fid) ?? 'off';
       h.setState(s);

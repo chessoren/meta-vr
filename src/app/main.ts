@@ -65,6 +65,8 @@ async function boot() {
     XR.session = session;
     session.addEventListener('visibilitychange', () => {
       XR.visibility = session.visibilityState;
+      // Headset off (hidden) or system overlay (visible-blurred): freeze every flow exactly where it is.
+      app.paused = session.visibilityState !== 'visible';
       if (session.visibilityState === 'hidden') {
         store.saveNow();
         sfx.engine.suspend?.();
@@ -75,6 +77,7 @@ async function boot() {
       }
     });
     session.addEventListener('end', () => {
+      app.paused = false;
       XR.session = null;
       XR.frame = null;
       store.saveNow();
@@ -237,6 +240,16 @@ function installDebugHooks(app: App) {
     lookAt: emuLookAt,
     pose: emuPose,
     menu: (id: string) => app.onMenu?.(id),
+    /** Simulate taking the headset off / putting it back on. */
+    visibility: (v: 'visible' | 'hidden' | 'visible-blurred') => (window as unknown as { __emu?: { device: { updateVisibilityState(s: string): void } } }).__emu?.device.updateVisibilityState(v),
+    savedPlacements: () => {
+      try {
+        const s = JSON.parse(localStorage.getItem('loci.store.v1') ?? '{}');
+        return (s.progress ?? []).reduce((n: number, p: { placements: unknown[] }) => n + p.placements.length, 0);
+      } catch {
+        return -1;
+      }
+    },
     /** Place every notion of a palace instantly (perf audits, screenshots). */
     placeAll: (palaceId: string, mode: 'idle' | 'reveal' = 'idle') => {
       const palace = app.store.palace(palaceId);
