@@ -179,6 +179,8 @@ export interface RoomModel {
   seat: Vec3;
   /** Direction the learner faces when seated (yaw, radians). */
   seatYaw: number;
+  /** Persistent WebXR anchor handle placed at the room origin (fallback registration). */
+  anchorUuid?: string;
 }
 
 /** A notion placed on (or near) a piece of furniture. */

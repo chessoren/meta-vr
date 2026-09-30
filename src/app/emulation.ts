@@ -30,3 +30,19 @@ export async function installEmulator(room: EmuRoom, deviceName = 'quest3'): Pro
   (window as unknown as { __emu: Emulator }).__emu = { device, room };
   return { device, room };
 }
+
+/** Point the emulated headset at a world point (tests drive the gaze with this). */
+export function emuLookAt(x: number, y: number, z: number) {
+  const emu = (window as unknown as { __emu?: Emulator }).__emu;
+  if (!emu) return;
+  const p = emu.device.position;
+  const dx = x - p.x;
+  const dy = y - p.y;
+  const dz = z - p.z;
+  const yaw = Math.atan2(-dx, -dz);
+  const pitch = Math.atan2(dy, Math.hypot(dx, dz));
+  // q = yaw(Y) * pitch(X)
+  const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2);
+  const cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+  emu.device.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
+}
