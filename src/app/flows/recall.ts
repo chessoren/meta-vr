@@ -49,6 +49,7 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
   const retried = new Set<string>();
   let correct = 0;
   let asked = 0;
+  const firstTry = new Map<string, boolean>();
   for (const id of queue) app.view.setMode(id, 'due');
 
   if (opts.intro && queue.length) {
@@ -136,6 +137,7 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
 
     const res = await app.ask(it.notion);
     asked++;
+    if (!firstTry.has(id)) firstTry.set(id, res.correct);
     const ups = app.recordReview(progress, palace, id, res);
     queue = queue.filter((q) => q !== id);
     if (res.correct) {
@@ -173,7 +175,9 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
   clearTargets('item');
   app.hint.setVisible(false, true);
   await until(() => true, token);
-  return { correct, asked };
+  const unique = firstTry.size;
+  const firstTryCorrect = [...firstTry.values()].filter(Boolean).length;
+  return { correct, asked, unique, firstTryCorrect };
 }
 
 function pick<T>(arr: T[], i: number) {

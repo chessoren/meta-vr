@@ -236,6 +236,31 @@ function installDebugHooks(app: App) {
     THREE,
     lookAt: emuLookAt,
     pose: emuPose,
+    menu: (id: string) => app.onMenu?.(id),
+    /** Place every notion of a palace instantly (perf audits, screenshots). */
+    placeAll: (palaceId: string, mode: 'idle' | 'reveal' = 'idle') => {
+      const palace = app.store.palace(palaceId);
+      if (!palace || !app.room.room) return 0;
+      app.newToken();
+      app.store.setActivePalace(palace.id);
+      const progress = app.store.progress(palace.id);
+      const seen = app.room.furniture().filter((f) => app.room.isSeen(f.id));
+      palace.notions.forEach((n, i) => {
+        if (progress.placements.some((p) => p.notionId === n.id)) return;
+        const f = seen[i % seen.length];
+        const hit = app.room.toSession([f.center[0] + (((i * 37) % 7) - 3) * 0.08, f.center[1] + f.size[1] / 2, f.center[2]], new THREE.Vector3());
+        const spot = app.spotOn(f, hit, progress, n.id);
+        progress.placements.push({ notionId: n.id, furnitureId: f.id, local: spot.local, order: i, placedAt: Date.now() });
+      });
+      app.view.load(palace, progress);
+      app.view.setAllModes(mode);
+      app.hideAllPanels();
+      return progress.placements.length;
+    },
+    renderInfo: () => {
+      const r = (window as unknown as { __world: World }).__world.renderer;
+      return { calls: r.info.render.calls, triangles: r.info.render.triangles, geometries: r.info.memory.geometries, textures: r.info.memory.textures, programs: r.info.programs?.length ?? 0 };
+    },
     /**
      * Max horizontal distance between each placed scene and the box of the object it was
      * placed on, as detected NOW by the headset (proves persistence + registration).
@@ -283,6 +308,7 @@ function installDebugHooks(app: App) {
       currentNotion: app.debug.notion ?? null,
       due: [...app.view.items.values()].filter((i) => i.mode === 'due' || i.mode === 'active').map((i) => i.notion.id),
       presenting: app.debug.presenting ?? null,
+      pair: app.debug.pair ?? null,
     }),
   };
 }

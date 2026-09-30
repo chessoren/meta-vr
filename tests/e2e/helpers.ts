@@ -18,6 +18,7 @@ export type State = {
   currentNotion: { id: string; answer: string } | null;
   due: string[];
   presenting: string | null;
+  pair: string | null;
 };
 
 export const st = (page: Page) => page.evaluate(() => (window as any).__loci.state() as State);
@@ -40,7 +41,10 @@ export async function installClock(page: Page) {
     Date.now = () => orig() + shift;
   });
 }
-export const setClockShift = (page: Page, ms: number) => page.evaluate((ms) => localStorage.setItem('__clockShift', String(ms)), ms);
+export async function setClockShift(page: Page, ms: number) {
+  await page.locator('#enter:not([disabled])').waitFor({ timeout: 90_000 });
+  await page.evaluate((ms) => localStorage.setItem('__clockShift', String(ms)), ms);
+}
 
 export function collectErrors(page: Page) {
   const errors: string[] = [];
@@ -94,4 +98,15 @@ export async function recallN(page: Page, n: number, opts: { wrong?: number[]; s
     await lookAt(page, ahead);
   }
   return reviews;
+}
+
+/** A store where onboarding is already done (skips the first five minutes). */
+export async function seedReturningStore(page: Page) {
+  await page.locator('#enter:not([disabled])').waitFor({ timeout: 90_000 });
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'loci.store.v1',
+      JSON.stringify({ version: 1, rooms: [], palaces: [], progress: [], settings: { voice: false, sound: true }, onboardingDone: true }),
+    ),
+  );
 }

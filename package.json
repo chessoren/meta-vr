@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Loci — turn your real room into a memory palace. Mixed reality spaced-repetition for Meta Quest and Meta VR Glasses.",
+  "description": "Loci \u2014 turn your real room into a memory palace. Mixed reality spaced-repetition for Meta Quest and Meta VR Glasses.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "check": "npm run typecheck && npm run test"
+    "check": "npm run typecheck && npm run test",
+    "build:vercel": "node scripts/build-vercel.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

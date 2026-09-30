@@ -35,12 +35,16 @@ export async function dailySession(app: App, palaceId?: string) {
   const due = plan.due.filter((id) => placed.has(id));
   app.view.setAllModes('idle');
 
+  let remembered = 0;
+  let quizzed = 0;
   // ── Reviews ────────────────────────────────────────────────────────────────
   if (due.length) {
     app.say(due.length === 1 ? '1 to review' : `${due.length} to review`, 'happy', 2.4);
     await wait(1.6, token);
     for (const id of due) app.view.setMode(id, 'due');
-    await recallAll(app, palace, progress, { ids: due, intro: false });
+    const r = await recallAll(app, palace, progress, { ids: due, intro: false });
+    remembered += r.firstTryCorrect;
+    quizzed += r.unique;
   } else if (placed.size) {
     app.say('All fresh!', 'happy', 2);
     await wait(1.4, token);
@@ -68,7 +72,9 @@ export async function dailySession(app: App, palaceId?: string) {
     const items = [...app.view.items.values()];
     for (const it of items) if (!fresh.includes(it.notion.id)) app.view.setMode(it.notion.id, 'idle');
     await lightsOut(app);
-    await recallAll(app, palace, progress, { ids: fresh });
+    const r = await recallAll(app, palace, progress, { ids: fresh });
+    remembered += r.firstTryCorrect;
+    quizzed += r.unique;
   }
 
   // ── Summary ────────────────────────────────────────────────────────────────
@@ -77,7 +83,14 @@ export async function dailySession(app: App, palaceId?: string) {
   app.view.setAllModes('idle');
   app.flame.setMood('celebrate');
   sfx.play('proof');
-  app.proof.setContent(`${after.solidCount} / ${after.total}`, 'solid notions', after.summaryLine);
+  const placedNow = progress.placements.length;
+  const line = quizzed
+    ? remembered === quizzed
+      ? 'Remembered today — every one.'
+      : `Remembered today · the others come back tomorrow.`
+    : 'Your palace is up to date.';
+  const sub = `${placedNow} of ${after.total} placed · ${after.solidCount} solid${after.daysLeft !== undefined ? ` · exam in ${after.daysLeft} d` : ''}`;
+  app.proof.setContent(quizzed ? `${remembered} / ${quizzed}` : `${after.solidCount} / ${after.total}`, line, sub);
   app.follow.snap();
   app.proof.setVisible(true, true);
   app.store.setFlow(null);
@@ -119,6 +132,7 @@ export async function importFlow(app: App) {
     return null;
   }
   app.qr.setSlot(slot.url, slot.code);
+  app.debug.pair = slot.code;
   app.qr.setState('waiting');
   app.follow.snap();
   app.qr.setVisible(true, true);

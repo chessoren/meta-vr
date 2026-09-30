@@ -18,7 +18,11 @@ function localApi(): Plugin {
 export default defineConfig({
   plugins: [localApi()],
   resolve: {
-    alias: { '@core': resolve(__dirname, 'src/core') },
+    alias: [
+      { find: '@core', replacement: resolve(__dirname, 'src/core') },
+      // 4.6 MB of icons pulled in by IWSDK's UIKitML kit, unused by Loci (see src/stubs/uikit-lucide.ts).
+      { find: /^@pmndrs\/uikit-lucide$/, replacement: resolve(__dirname, 'src/stubs/uikit-lucide.ts') },
+    ],
     dedupe: ['three'],
   },
   server: { host: '0.0.0.0', port: 5173 },
@@ -26,7 +30,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     target: 'es2022',
-    sourcemap: true,
+    sourcemap: false,
     chunkSizeWarningLimit: 3000,
     rollupOptions: {
       input: {
