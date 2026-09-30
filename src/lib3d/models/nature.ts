@@ -293,7 +293,7 @@ function wave(o: { tint?: string }) {
 export const SPECS: ModelSpec[] = [
   {
     id: 'tree', name: 'Tree', category: 'nature',
-    tags: ['tree', 'forest', 'nature', 'family tree', 'genealogy', 'oak', 'growth', 'life', 'roots', 'ecology', 'lebanon', 'cedar', 'knowledge', 'eden', 'wood'],
+    tags: ['tree', 'forest', 'nature', 'family tree', 'genealogy', 'oak', 'growth', 'life', 'roots', 'ecology', 'lebanon', 'cedar', 'knowledge', 'eden', 'wood', 'oxygen', 'plant', 'leaf', 'breath', 'o2'],
     soundsLike: ['tree', 'three', 'tri', 'arbre', 'arb', 'oak', 'tre', 'try'],
     anims: ['idle', 'wobble', 'grow', 'shake'], build: tree,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 1.1) * 0.04 * k); add(r, 'head', 'x', Math.sin(t * 0.8) * 0.02 * k); },
@@ -306,7 +306,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'sun', name: 'Sun', category: 'nature',
-    tags: ['sun', 'sunlight', 'day', 'summer', 'heat', 'energy', 'star', 'solar', 'japan', 'rising sun', 'louis xiv', 'sun king', 'ra', 'apollo', 'helios', 'argentina', 'light'],
+    tags: ['sun', 'sunlight', 'day', 'summer', 'heat', 'energy', 'star', 'solar', 'japan', 'rising sun', 'louis xiv', 'sun king', 'ra', 'apollo', 'helios', 'argentina', 'light', 'tokyo', 'photosynthesis', 'rising'],
     soundsLike: ['sun', 'son', 'soleil', 'sol', 'sunny', 'sunday', 'sans'],
     anims: ['spin', 'float', 'grow', 'idle'], build: sun,
   },
@@ -324,14 +324,14 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'cloud', name: 'Cloud', category: 'nature',
-    tags: ['cloud', 'sky', 'weather', 'rain', 'dream', 'daydream', 'cloud nine', 'computing', 'data', 'fog', 'grey', 'london', 'soft', 'heaven'],
+    tags: ['cloud', 'sky', 'weather', 'rain', 'dream', 'daydream', 'cloud nine', 'computing', 'data', 'fog', 'grey', 'london', 'soft', 'heaven', 'atmosphere', 'gas', 'air', 'steam', 'vapour', 'smoke'],
     soundsLike: ['cloud', 'clou', 'nuage', 'claude', 'loud', 'clown', 'crowd'],
     anims: ['float', 'idle', 'wobble', 'rain', 'grow'], build: cloud,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 0.9) * 0.05 * k); add(r, 'head', 'y', Math.sin(t * 0.6) * 0.08 * k); },
   },
   {
     id: 'lightning', name: 'Lightning', category: 'nature',
-    tags: ['lightning', 'thunder', 'storm', 'electricity', 'energy', 'zeus', 'thor', 'bolt', 'flash', 'speed', 'franklin', 'power', 'idea', 'shock', 'blitz', 'blitzkrieg'],
+    tags: ['lightning', 'thunder', 'storm', 'electricity', 'energy', 'zeus', 'thor', 'bolt', 'flash', 'speed', 'franklin', 'power', 'idea', 'shock', 'blitz', 'blitzkrieg', 'jupiter'],
     soundsLike: ['light', 'lightning', 'bolt', 'eclair', 'foudre', 'zeus', 'blitz', 'flash'],
     anims: ['shake', 'idle', 'float', 'wobble'], build: lightning,
   },
@@ -343,14 +343,14 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'fire', name: 'Fire', category: 'nature',
-    tags: ['fire', 'flame', 'heat', 'burn', 'camp', 'campfire', 'prometheus', 'danger', 'passion', 'london', '1666', 'war', 'energy', 'bern', 'burn', 'revolution'],
+    tags: ['fire', 'flame', 'heat', 'burn', 'camp', 'campfire', 'prometheus', 'danger', 'passion', 'london', '1666', 'war', 'energy', 'bern', 'burn', 'revolution', 'carbon', 'combustion', 'boiling', 'smoke'],
     soundsLike: ['fire', 'fi', 'feu', 'flame', 'flamme', 'burn', 'bern', 'fyre'],
     anims: ['idle', 'shake', 'grow', 'dance'], build: fire,
   },
   {
     id: 'wave', name: 'Wave', category: 'nature',
-    tags: ['wave', 'sea', 'ocean', 'water', 'surf', 'tsunami', 'tide', 'hokusai', 'japan', 'ottawa', 'beach', 'sound', 'frequency', 'physics', 'hello', 'goodbye'],
-    soundsLike: ['wave', 'wa', 'wah', 'vague', 'vag', 'onde', 'ottawa', 'way'],
+    tags: ['wave', 'sea', 'ocean', 'water', 'surf', 'tsunami', 'tide', 'hokusai', 'japan', 'ottawa', 'beach', 'sound', 'frequency', 'physics', 'hello', 'goodbye', 'salt', 'pacific', 'wash'],
+    soundsLike: ['wave', 'wa', 'wah', 'vague', 'vag', 'onde', 'ottawa', 'way', 'wash', 'washing'],
     anims: ['idle', 'wobble', 'float', 'shake'], build: wave,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 1.6) * 0.06 * k); add(r, 'head', 'x', Math.sin(t * 1.1) * 0.04 * k); },
   },

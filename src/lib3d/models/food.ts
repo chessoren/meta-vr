@@ -263,7 +263,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'teacup', name: 'Teacup', category: 'food',
-    tags: ['tea', 'teacup', 'cup', 'england', 'british', 'london', 'boston', 'tea party', 'india', 'china', 'porcelain', 'five o clock', 'break', 'calm', 'tempest'],
+    tags: ['tea', 'teacup', 'cup', 'england', 'british', 'london', 'boston', 'tea party', 'india', 'china', 'porcelain', 'five o clock', 'break', 'calm', 'tempest', 'boiling', 'kettle', 'hot water'],
     soundsLike: ['tea', 'tee', 't', 'the', 'thé', 'tasse', 'cup', 'teacup', 'tic'],
     anims: ['idle', 'wobble', 'spin', 'float', 'shake'], build: teacup,
     idle: (root, t, k) => add(root, 'flame', 'y', Math.sin(t * 1.2) * 0.4 * k),

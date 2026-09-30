@@ -611,7 +611,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'fish', name: 'Fish', category: 'animal',
-    tags: ['fish', 'sea', 'ocean', 'water', 'swim', 'aquarium', 'clownfish', 'nemo', 'reef', 'pisces', 'christian', 'ichthys', 'fishing', 'memory'],
+    tags: ['fish', 'sea', 'ocean', 'water', 'swim', 'aquarium', 'clownfish', 'nemo', 'reef', 'pisces', 'christian', 'ichthys', 'fishing', 'memory', 'darwin', 'species', 'pacific'],
     soundsLike: ['fish', 'fi', 'fiche', 'poisson', 'poison', 'pisc', 'fission'],
     anims: ['float', 'orbit', 'wobble', 'flip', 'rain'], build: fish,
     idle: (r, t, k) => add(r, 'tail', 'y', Math.sin(t * 6) * 0.35 * k),
@@ -625,7 +625,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'eagle', name: 'Eagle', category: 'animal',
-    tags: ['eagle', 'usa', 'america', 'freedom', 'germany', 'empire', 'rome', 'napoleon', 'austria', 'mexico', 'power', 'emblem', 'sky', 'hunter', 'reich', 'legion'],
+    tags: ['eagle', 'usa', 'america', 'freedom', 'germany', 'empire', 'rome', 'napoleon', 'austria', 'mexico', 'power', 'emblem', 'sky', 'hunter', 'reich', 'legion', 'washington', 'president', 'first president'],
     soundsLike: ['eagle', 'eag', 'aigle', 'egal', 'legal', 'eagl', 'ego'],
     anims: ['fly', 'float', 'idle', 'orbit'], build: eagle,
     idle: (r, t, k) => { flap(r, Math.sin(t * 1.8) * 0.1 * k); add(r, 'head', 'y', Math.sin(t * 0.8) * 0.2 * k); },
@@ -639,7 +639,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'lion', name: 'Lion', category: 'animal',
-    tags: ['lion', 'king', 'courage', 'england', 'britain', 'richard', 'lionheart', 'pride', 'africa', 'leo', 'roar', 'belgium', 'netherlands', 'judah', 'royal'],
+    tags: ['lion', 'king', 'courage', 'england', 'britain', 'richard', 'lionheart', 'pride', 'africa', 'leo', 'roar', 'belgium', 'netherlands', 'judah', 'royal', 'heart', 'coeur', 'coeur de lion'],
     soundsLike: ['lion', 'lyon', 'leo', 'leon', 'lio', 'lie on', 'roar'],
     anims: ['idle', 'march', 'shake', 'grow', 'dance'], build: lion,
     idle: (r, t, k) => { add(r, 'tail', 'z', Math.sin(t * 1.7) * 0.3 * k); add(r, 'head', 'z', Math.sin(t * 0.8) * 0.05 * k); },

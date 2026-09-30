@@ -299,21 +299,21 @@ function knight(o: { tint?: string }) {
 export const SPECS: ModelSpec[] = [
   {
     id: 'soldier', name: 'Soldier', category: 'person',
-    tags: ['soldier', 'war', 'army', 'wwi', 'ww1', 'great war', 'trench', 'tommy', 'poilu', 'infantry', 'veteran', 'armistice', 'remembrance', 'somme', 'verdun', 'marne', 'conscription', 'duty'],
+    tags: ['soldier', 'war', 'army', 'wwi', 'ww1', 'great war', 'trench', 'tommy', 'poilu', 'infantry', 'veteran', 'armistice', 'remembrance', 'somme', 'verdun', 'marne', 'conscription', 'duty', 'world war', 'first world war'],
     soundsLike: ['soldier', 'sold', 'solder', 'soldat', 'solde', 'tommy', 'poilu', 'troop'],
     anims: ['march', 'idle', 'shake', 'dance'], build: soldier,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 1.1) * 0.05 * k); add(r, 'armR', 'x', Math.sin(t * 1.4) * 0.06 * k); },
   },
   {
     id: 'king', name: 'King', category: 'person',
-    tags: ['king', 'monarch', 'royal', 'crown', 'throne', 'kingdom', 'louis', 'henry', 'george', 'charles', 'empire', 'power', 'rule', 'monarchy', 'coronation', 'regal', 'sovereign'],
+    tags: ['king', 'monarch', 'royal', 'crown', 'throne', 'kingdom', 'louis', 'henry', 'george', 'charles', 'empire', 'power', 'rule', 'monarchy', 'coronation', 'regal', 'sovereign', 'charlemagne'],
     soundsLike: ['king', 'kin', 'roi', 'roy', 'rex', 'reign', 'rain', 'king kong'],
     anims: ['idle', 'wobble', 'dance', 'grow', 'spin'], build: king,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 0.9) * 0.05 * k); add(r, 'armR', 'z', -Math.sin(t * 1.2) * 0.08 * k); },
   },
   {
     id: 'sailor', name: 'Sailor', category: 'person',
-    tags: ['sailor', 'navy', 'sea', 'ship', 'marine', 'boat', 'ocean', 'port', 'harbour', 'jutland', 'fleet', 'voyage', 'france', 'brittany', 'popeye', 'captain'],
+    tags: ['sailor', 'navy', 'sea', 'ship', 'marine', 'boat', 'ocean', 'port', 'harbour', 'jutland', 'fleet', 'voyage', 'france', 'brittany', 'popeye', 'captain', 'salt', 'old salt', 'portugal', 'lisbon'],
     soundsLike: ['sailor', 'sail', 'sale', 'marin', 'matelot', 'navy', 'marine', 'tailor'],
     anims: ['dance', 'wobble', 'march', 'idle'], build: sailor,
     idle: (r, t, k) => { add(r, 'armL', 'z', Math.sin(t * 1.6) * 0.1 * k); add(r, 'head', 'z', Math.sin(t * 1.1) * 0.06 * k); },
@@ -327,7 +327,7 @@ export const SPECS: ModelSpec[] = [
   },
   {
     id: 'scientist', name: 'Scientist', category: 'person',
-    tags: ['scientist', 'science', 'lab', 'laboratory', 'experiment', 'chemistry', 'einstein', 'curie', 'newton', 'pasteur', 'research', 'discovery', 'genius', 'professor', 'doctor', 'invention'],
+    tags: ['scientist', 'science', 'lab', 'laboratory', 'experiment', 'chemistry', 'einstein', 'curie', 'newton', 'pasteur', 'research', 'discovery', 'genius', 'professor', 'doctor', 'invention', 'relativity', 'dna', 'genetics'],
     soundsLike: ['scientist', 'science', 'sign', 'savant', 'scient', 'eins', 'stein', 'prof'],
     anims: ['idle', 'shake', 'dance', 'bounce', 'wobble'], build: scientist,
     idle: (r, t, k) => { add(r, 'armR', 'x', -Math.max(0, Math.sin(t * 1.5)) * 0.3 * k); add(r, 'head', 'z', Math.sin(t * 1.2) * 0.07 * k); },
@@ -335,7 +335,7 @@ export const SPECS: ModelSpec[] = [
   {
     id: 'knight', name: 'Knight', category: 'person',
     tags: ['knight', 'medieval', 'middle ages', 'armour', 'armor', 'chivalry', 'crusade', 'castle', 'honour', 'quest', 'arthur', 'templar', 'hero', 'joust', 'noble', 'protect'],
-    soundsLike: ['knight', 'night', 'nite', 'chevalier', 'cheval', 'sir', 'nuit', 'k-night'],
+    soundsLike: ['knight', 'night', 'nite', 'chevalier', 'cheval', 'sir', 'nuit', 'k-night', 'nai', 'nigh'],
     anims: ['march', 'idle', 'shake', 'dance', 'wobble'], build: knight,
     idle: (r, t, k) => { add(r, 'head', 'z', Math.sin(t * 1.0) * 0.05 * k); add(r, 'armL', 'z', Math.sin(t * 1.3) * 0.05 * k); },
   },

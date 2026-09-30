@@ -188,7 +188,7 @@ function lightbulb(o: { tint?: string }) {
 export const SPECS: ModelSpec[] = [
   {
     id: 'globe', name: 'Globe', category: 'science',
-    tags: ['globe', 'world', 'earth', 'planet', 'geography', 'travel', 'map', 'global', 'international', 'columbus', 'magellan', 'explorer', 'atlas', 'united nations', 'capital', 'country'],
+    tags: ['globe', 'world', 'earth', 'planet', 'geography', 'travel', 'map', 'global', 'international', 'columbus', 'magellan', 'explorer', 'atlas', 'united nations', 'capital', 'country', 'jupiter', 'solar system'],
     soundsLike: ['globe', 'glob', 'globo', 'monde', 'world', 'terre', 'earth', 'lobe'],
     anims: ['spin', 'idle', 'float', 'wobble'], build: globe,
   },
@@ -224,7 +224,7 @@ export const SPECS: ModelSpec[] = [
   {
     id: 'magnet', name: 'Magnet', category: 'science',
     tags: ['magnet', 'magnetism', 'attraction', 'north', 'south', 'pole', 'compass', 'force', 'field', 'iron', 'faraday', 'electromagnet', 'physics', 'charisma', 'pull'],
-    soundsLike: ['magnet', 'mag', 'aimant', 'magna', 'magnate', 'net', 'maggie'],
+    soundsLike: ['magnet', 'mag', 'aimant', 'magna', 'magnate', 'net', 'maggie', 'magne'],
     anims: ['shake', 'wobble', 'spin', 'idle', 'grow'], build: magnet,
   },
   {

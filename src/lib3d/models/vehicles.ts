@@ -217,7 +217,7 @@ export const SPECS: ModelSpec[] = [
     id: 'ship',
     name: 'Steamship',
     category: 'vehicle',
-    tags: ['ship', 'boat', 'steamship', 'liner', 'navy', 'sea', 'ocean', 'voyage', 'titanic', 'lusitania', 'transatlantic', 'harbour', 'sailor', 'fleet', 'emigration', 'cruise', 'port', 'trade'],
+    tags: ['ship', 'boat', 'steamship', 'liner', 'navy', 'sea', 'ocean', 'voyage', 'titanic', 'lusitania', 'transatlantic', 'harbour', 'sailor', 'fleet', 'emigration', 'cruise', 'port', 'trade', 'portugal', 'lisbon', 'lisbonne', 'columbus', 'new world', 'discovery'],
     soundsLike: ['ship', 'chip', 'sheep', 'navire', 'bateau', 'nav', 'paquebot', 'titan'],
     anims: ['wobble', 'float', 'orbit', 'bounce'],
     build: (o) => {
@@ -504,7 +504,7 @@ export const SPECS: ModelSpec[] = [
     id: 'balloon',
     name: 'Hot-air balloon',
     category: 'vehicle',
-    tags: ['balloon', 'hot air balloon', 'montgolfier', 'flight', 'sky', 'adventure', 'journey', 'travel', 'around the world', 'float', 'lift', 'rise', 'inflation', 'party', 'freedom', 'lightness'],
+    tags: ['balloon', 'hot air balloon', 'montgolfier', 'flight', 'sky', 'adventure', 'journey', 'travel', 'around the world', 'float', 'lift', 'rise', 'inflation', 'party', 'freedom', 'lightness', 'air', 'gas', 'helium', 'nitrogen', 'atmosphere'],
     soundsLike: ['balloon', 'ballon', 'ball', 'montgolfiere', 'golf', 'loon', 'balle'],
     anims: ['float', 'fly', 'orbit', 'wobble', 'bounce'],
     build: (o) => {

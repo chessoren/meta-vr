@@ -350,6 +350,23 @@ function installDebugHooks(app: App) {
       app.hideAllPanels();
       return progress.placements.length;
     },
+    /** Fake weeks of reviews so every tier shows (screenshots of "the room fills up"). */
+    forgeTiers: () => {
+      const progress = app.view.progress;
+      if (!progress) return 0;
+      const DAY = 86_400_000;
+      const now = Date.now();
+      let i = 0;
+      for (const it of app.view.items.values()) {
+        const k = i++ % 4; // 0 new, 1 fragile, 2 solid, 3 anchored
+        const days = [0, 1, 3, 5][k];
+        const log = Array.from({ length: days }, (_, d) => ({ at: now - (k === 3 ? 20 - d * 4 : 3 - d) * DAY, grade: 'good' as const, mode: 'bubble' as const }));
+        progress.reviews[it.notion.id] = { notionId: it.notion.id, placedAt: now - 30 * DAY, due: now + 5 * DAY, intervalDays: 5, ease: 2.5, streak: days, lapses: 0, log };
+      }
+      app.view.refreshTiers(false);
+      app.view.setAllModes('idle');
+      return i;
+    },
     renderInfo: () => {
       const r = (window as unknown as { __world: World }).__world.renderer;
       return { calls: r.info.render.calls, triangles: r.info.render.triangles, geometries: r.info.memory.geometries, textures: r.info.memory.textures, programs: r.info.programs?.length ?? 0 };

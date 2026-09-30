@@ -38,7 +38,7 @@ export const SPECS: ModelSpec[] = [
     id: 'castle',
     name: 'Castle',
     category: 'structure',
-    tags: ['castle', 'fortress', 'king', 'kingdom', 'medieval', 'defence', 'siege', 'knight', 'princess', 'fairy tale', 'power', 'feudal', 'palace', 'stronghold', 'royal', 'home'],
+    tags: ['castle', 'fortress', 'king', 'kingdom', 'medieval', 'defence', 'siege', 'knight', 'princess', 'fairy tale', 'power', 'feudal', 'palace', 'stronghold', 'royal', 'home', 'bastille', 'prison'],
     soundsLike: ['castle', 'cast', 'chateau', 'castel', 'castille', 'cassel'],
     anims: ['grow', 'idle', 'wobble', 'bounce'],
     build: (o) => {
@@ -167,8 +167,8 @@ export const SPECS: ModelSpec[] = [
     id: 'pyramid',
     name: 'Pyramids',
     category: 'structure',
-    tags: ['pyramid', 'egypt', 'pharaoh', 'ancient', 'giza', 'tomb', 'desert', 'cairo', 'mummy', 'nile', 'wonder', 'triangle', 'hierarchy', 'history', 'sand', 'mystery'],
-    soundsLike: ['pyramid', 'pyra', 'pira', 'pyramide', 'mid', 'pyre', 'amid'],
+    tags: ['pyramid', 'egypt', 'pharaoh', 'ancient', 'giza', 'tomb', 'desert', 'cairo', 'mummy', 'nile', 'wonder', 'triangle', 'hierarchy', 'history', 'sand', 'mystery', 'pythagoras', 'pythagore', 'theorem'],
+    soundsLike: ['pyramid', 'pyra', 'pira', 'pyramide', 'mid', 'pyre', 'amid', 'pytha', 'pita'],
     anims: ['grow', 'idle', 'bounce', 'spin'],
     build: (o) => {
       const sand = tintOr(o, PAL.sand);

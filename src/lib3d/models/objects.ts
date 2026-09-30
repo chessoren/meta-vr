@@ -117,7 +117,7 @@ export const SPECS: ModelSpec[] = [
     id: 'clock',
     name: 'Alarm clock',
     category: 'object',
-    tags: ['clock', 'time', 'hour', 'minute', 'alarm', 'deadline', 'morning', 'wake up', 'late', 'punctual', 'countdown', 'schedule', 'midnight', 'watch', 'tick tock'],
+    tags: ['clock', 'time', 'hour', 'minute', 'alarm', 'deadline', 'morning', 'wake up', 'late', 'punctual', 'countdown', 'schedule', 'midnight', 'watch', 'tick tock', 'relativity', 'ephemeral', 'fleeting', 'short time'],
     soundsLike: ['clock', 'clo', 'tick', 'tock', 'heure', 'horloge', 'reveil', 'time'],
     anims: ['shake', 'bounce', 'wobble', 'dance', 'idle'],
     build: (o) => {
@@ -175,7 +175,7 @@ export const SPECS: ModelSpec[] = [
     id: 'bell',
     name: 'Bell',
     category: 'object',
-    tags: ['bell', 'ring', 'church', 'alarm', 'celebration', 'wedding', 'victory', 'armistice', 'peace', 'christmas', 'school', 'announcement', 'liberty', 'toll', 'news', 'chime'],
+    tags: ['bell', 'ring', 'church', 'alarm', 'celebration', 'wedding', 'victory', 'armistice', 'peace', 'christmas', 'school', 'announcement', 'liberty', 'toll', 'news', 'chime', 'sound', 'speed of sound'],
     soundsLike: ['bel', 'belle', 'bell', 'belgium', 'belgique', 'ding', 'dong', 'cloche', 'berlin'],
     anims: ['wobble', 'shake', 'bounce', 'dance'],
     build: (o) => {
@@ -221,7 +221,7 @@ export const SPECS: ModelSpec[] = [
     id: 'crown',
     name: 'Crown',
     category: 'object',
-    tags: ['crown', 'king', 'queen', 'royal', 'monarchy', 'empire', 'emperor', 'power', 'throne', 'coronation', 'kingdom', 'tsar', 'kaiser', 'reign', 'winner', 'prince', 'rule'],
+    tags: ['crown', 'king', 'queen', 'royal', 'monarchy', 'empire', 'emperor', 'power', 'throne', 'coronation', 'kingdom', 'tsar', 'kaiser', 'reign', 'winner', 'prince', 'rule', 'charlemagne', 'couronnement'],
     soundsLike: ['crown', 'krone', 'couronne', 'roi', 'reine', 'king', 'crow', 'corona'],
     anims: ['spin', 'float', 'bounce', 'grow'],
     build: (o) => {
@@ -259,8 +259,8 @@ export const SPECS: ModelSpec[] = [
     id: 'sword',
     name: 'Sword in the stone',
     category: 'object',
-    tags: ['sword', 'knight', 'excalibur', 'arthur', 'battle', 'war', 'honour', 'legend', 'duel', 'blade', 'courage', 'chivalry', 'victory', 'conquest', 'medieval'],
-    soundsLike: ['sword', 'sord', 'saw', 'epee', 'excalibur', 'glaive'],
+    tags: ['sword', 'knight', 'excalibur', 'arthur', 'battle', 'war', 'honour', 'legend', 'duel', 'blade', 'courage', 'chivalry', 'victory', 'conquest', 'medieval', 'spear'],
+    soundsLike: ['sword', 'sord', 'saw', 'epee', 'excalibur', 'glaive', 'spear', 'speare'],
     anims: ['wobble', 'shake', 'grow', 'idle'],
     build: (o) => {
       const grip = tintOr(o, PAL.crimson);
@@ -377,7 +377,7 @@ export const SPECS: ModelSpec[] = [
     name: 'Trophy',
     category: 'object',
     tags: ['trophy', 'cup', 'winner', 'victory', 'champion', 'prize', 'award', 'success', 'first', 'competition', 'world cup', 'olympics', 'sport', 'best', 'triumph'],
-    soundsLike: ['trophy', 'tro', 'trophee', 'coupe', 'cup', 'win'],
+    soundsLike: ['trophy', 'tro', 'trophee', 'coupe', 'cup', 'win', 'vict', 'victor', 'victoire'],
     anims: ['spin', 'bounce', 'grow', 'float'],
     build: (o) => {
       const g = tintOr(o, PAL.gold);
@@ -495,8 +495,8 @@ export const SPECS: ModelSpec[] = [
     id: 'tophat',
     name: 'Top hat',
     category: 'object',
-    tags: ['top hat', 'hat', 'magic', 'magician', 'gentleman', 'elegance', 'lincoln', 'churchill', 'victorian', 'party', 'rabbit', 'trick', 'aristocrat', 'banker', 'capitalism', 'formal'],
-    soundsLike: ['hat', 'top', 'chapeau', 'haut', 'haute', 'tophat', 'magie'],
+    tags: ['top hat', 'hat', 'magic', 'magician', 'gentleman', 'elegance', 'lincoln', 'churchill', 'victorian', 'party', 'rabbit', 'trick', 'aristocrat', 'banker', 'capitalism', 'formal', 'mad hatter', 'madness'],
+    soundsLike: ['hat', 'top', 'chapeau', 'haut', 'haute', 'tophat', 'magie', 'mad', 'hatter'],
     anims: ['spin', 'bounce', 'flip', 'float', 'wobble'],
     build: (o) => {
       const c = tintOr(o, '#34353e');
@@ -516,7 +516,7 @@ export const SPECS: ModelSpec[] = [
     id: 'ball',
     name: 'Beach ball',
     category: 'object',
-    tags: ['ball', 'beach', 'play', 'game', 'summer', 'holiday', 'sport', 'bounce', 'round', 'fun', 'football', 'globe', 'party', 'childhood', 'volley'],
+    tags: ['ball', 'beach', 'play', 'game', 'summer', 'holiday', 'sport', 'bounce', 'round', 'fun', 'football', 'globe', 'party', 'childhood', 'volley', 'brazil', 'bresil', 'world cup'],
     soundsLike: ['ball', 'bal', 'balle', 'ballon', 'bol', 'bali', 'baltic'],
     anims: ['bounce', 'juggle', 'spin', 'rain', 'orbit'],
     build: (o) => {
@@ -931,7 +931,7 @@ export const SPECS: ModelSpec[] = [
     id: 'helmet',
     name: 'Brodie helmet',
     category: 'object',
-    tags: ['helmet', 'soldier', 'tommy', 'war', 'ww1', 'trenches', 'protection', 'army', 'brodie', 'infantry', 'battle', 'somme', 'verdun', 'veteran', 'armistice', 'front', 'safety'],
+    tags: ['helmet', 'soldier', 'tommy', 'war', 'ww1', 'trenches', 'protection', 'army', 'brodie', 'infantry', 'battle', 'somme', 'verdun', 'veteran', 'armistice', 'front', 'safety', 'world war'],
     soundsLike: ['helmet', 'hel', 'helm', 'casque', 'cask', 'tommy', 'hell'],
     anims: ['wobble', 'spin', 'bounce', 'shake'],
     build: (o) => {

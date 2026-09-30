@@ -224,7 +224,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "reef",
    "ichthys",
    "fishing",
-   "memory"
+   "memory",
+   "darwin",
+   "species",
+   "pacific"
   ],
   "soundsLike": [
    "fish",
@@ -312,7 +315,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "emblem",
    "hunter",
    "reich",
-   "legion"
+   "legion",
+   "washington",
+   "president",
+   "first president"
   ],
   "soundsLike": [
    "eagle",
@@ -393,7 +399,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "richard",
    "lionheart",
    "netherlands",
-   "judah"
+   "judah",
+   "heart",
+   "coeur",
+   "coeur de lion"
   ],
   "soundsLike": [
    "lion",
@@ -816,7 +825,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "somme",
    "verdun",
    "marne",
-   "conscription"
+   "conscription",
+   "world war",
+   "first world war"
   ],
   "soundsLike": [
    "sold",
@@ -863,7 +874,8 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "empire",
    "coronation",
    "regal",
-   "sovereign"
+   "sovereign",
+   "charlemagne"
   ],
   "soundsLike": [
    "king",
@@ -907,7 +919,11 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "france",
    "brittany",
    "popeye",
-   "captain"
+   "captain",
+   "salt",
+   "old salt",
+   "portugal",
+   "lisbon"
   ],
   "soundsLike": [
    "sail",
@@ -993,7 +1009,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "pasteur",
    "discovery",
    "professor",
-   "doctor"
+   "doctor",
+   "relativity",
+   "dna",
+   "genetics"
   ],
   "soundsLike": [
    "sci",
@@ -1052,7 +1071,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "cheval",
    "sir",
    "nuit",
-   "k-night"
+   "k-night",
+   "nai",
+   "nigh"
   ],
   "anims": [
    "march",
@@ -1287,7 +1308,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "five o clock",
    "break",
    "calm",
-   "tempest"
+   "tempest",
+   "boiling",
+   "kettle",
+   "hot water"
   ],
   "soundsLike": [
    "tea",
@@ -1369,7 +1393,12 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "lebanon",
    "cedar",
    "knowledge",
-   "eden"
+   "eden",
+   "oxygen",
+   "plant",
+   "leaf",
+   "breath",
+   "o2"
   ],
   "soundsLike": [
    "tree",
@@ -1453,7 +1482,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "ra",
    "apollo",
    "helios",
-   "argentina"
+   "argentina",
+   "tokyo",
+   "photosynthesis",
+   "rising"
   ],
   "soundsLike": [
    "sun",
@@ -1579,7 +1611,13 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "grey",
    "london",
    "soft",
-   "heaven"
+   "heaven",
+   "atmosphere",
+   "gas",
+   "air",
+   "steam",
+   "vapour",
+   "smoke"
   ],
   "soundsLike": [
    "cloud",
@@ -1621,7 +1659,8 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "speed",
    "power",
    "idea",
-   "blitzkrieg"
+   "blitzkrieg",
+   "jupiter"
   ],
   "soundsLike": [
    "light",
@@ -1704,7 +1743,11 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "campfire",
    "1666",
    "war",
-   "bern"
+   "bern",
+   "carbon",
+   "combustion",
+   "boiling",
+   "smoke"
   ],
   "soundsLike": [
    "fire",
@@ -1748,7 +1791,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "japan",
    "ottawa",
    "frequency",
-   "goodbye"
+   "goodbye",
+   "salt",
+   "pacific",
+   "wash"
   ],
   "soundsLike": [
    "wave",
@@ -1762,7 +1808,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "wah",
    "onde",
    "ottawa",
-   "way"
+   "way",
+   "wash",
+   "washing"
   ],
   "anims": [
    "idle",
@@ -1792,7 +1840,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "explorer",
    "atlas",
    "capital",
-   "country"
+   "country",
+   "jupiter",
+   "solar system"
   ],
   "soundsLike": [
    "glob",
@@ -1963,7 +2013,8 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "aimant",
    "magna",
    "magnate",
-   "maggie"
+   "maggie",
+   "magne"
   ],
   "anims": [
    "shake",
@@ -2090,7 +2141,11 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "countdown",
    "schedule",
    "watch",
-   "tick tock"
+   "tick tock",
+   "relativity",
+   "ephemeral",
+   "fleeting",
+   "short time"
   ],
   "soundsLike": [
    "clock",
@@ -2135,7 +2190,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "announcement",
    "toll",
    "news",
-   "chime"
+   "chime",
+   "sound",
+   "speed of sound"
   ],
   "soundsLike": [
    "bell",
@@ -2178,7 +2235,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "reign",
    "winner",
    "prince",
-   "rule"
+   "rule",
+   "charlemagne",
+   "couronnement"
   ],
   "soundsLike": [
    "crown",
@@ -2220,7 +2279,8 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "chivalry",
    "victory",
    "conquest",
-   "medieval"
+   "medieval",
+   "spear"
   ],
   "soundsLike": [
    "sword",
@@ -2231,7 +2291,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "sabre",
    "saw",
    "excalibur",
-   "glaive"
+   "glaive",
+   "spear",
+   "speare"
   ],
   "anims": [
    "wobble",
@@ -2403,7 +2465,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "coupe",
    "cup",
    "trophee",
-   "win"
+   "win",
+   "vict",
+   "victor",
+   "victoire"
   ],
   "anims": [
    "spin",
@@ -2520,7 +2585,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "trick",
    "banker",
    "capitalism",
-   "formal"
+   "formal",
+   "mad hatter",
+   "madness"
   ],
   "soundsLike": [
    "top",
@@ -2531,7 +2598,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "haut",
    "haute",
    "tophat",
-   "magie"
+   "magie",
+   "mad",
+   "hatter"
   ],
   "anims": [
    "spin",
@@ -2565,7 +2634,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "globe",
    "party",
    "childhood",
-   "volley"
+   "volley",
+   "brazil",
+   "bresil",
+   "world cup"
   ],
   "soundsLike": [
    "ball",
@@ -2993,7 +3065,8 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "verdun",
    "veteran",
    "armistice",
-   "front"
+   "front",
+   "world war"
   ],
   "soundsLike": [
    "helm",
@@ -3474,7 +3547,13 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "sailor",
    "emigration",
    "cruise",
-   "port"
+   "port",
+   "portugal",
+   "lisbon",
+   "lisbonne",
+   "columbus",
+   "new world",
+   "discovery"
   ],
   "soundsLike": [
    "ship",
@@ -3693,7 +3772,12 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "rise",
    "inflation",
    "freedom",
-   "lightness"
+   "lightness",
+   "air",
+   "gas",
+   "helium",
+   "nitrogen",
+   "atmosphere"
   ],
   "soundsLike": [
    "ball",
@@ -3736,7 +3820,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "feudal",
    "stronghold",
    "royal",
-   "home"
+   "home",
+   "bastille",
+   "prison"
   ],
   "soundsLike": [
    "castle",
@@ -3825,7 +3911,10 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "triangle",
    "history",
    "sand",
-   "mystery"
+   "mystery",
+   "pythagoras",
+   "pythagore",
+   "theorem"
   ],
   "soundsLike": [
    "pyra",
@@ -3835,7 +3924,9 @@ export const CATALOG_DATA: CatalogEntry[] = [
    "pyramide",
    "pyramid",
    "pyre",
-   "amid"
+   "amid",
+   "pytha",
+   "pita"
   ],
   "anims": [
    "grow",
