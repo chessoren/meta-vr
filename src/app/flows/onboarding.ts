@@ -84,9 +84,11 @@ export async function onboarding(app: App, resumeAt: OnboardingStep = 'hello') {
   }
 
   // ── 0:30 Room scan ─────────────────────────────────────────────────────────
-  checkpoint('scan');
+  const introduceScan = at('scan');
+  if (introduceScan) checkpoint('scan');
   await until(() => app.room.ready, token);
-  await scanRoom(app, { introduce: at('scan') || step <= ORDER.indexOf('place') });
+  // Resuming later than the scan: a quick glow of the objects, not the whole tour again.
+  await scanRoom(app, { introduce: introduceScan });
   await ensureLoci(app, 5);
 
   // ── 1:00 – 3:00 Place the five capitals ───────────────────────────────────

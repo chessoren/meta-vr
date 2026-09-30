@@ -18,9 +18,9 @@ Iron Curtain: phrase popularised by Winston Churchill in 1946`;
 test('import from phone: code → course → palace arrives in the headset → placed and recalled', async ({ page, request }) => {
   test.setTimeout(480_000);
   const errors = collectErrors(page);
-  await page.goto('/app/?emu=office_large&reset=1');
+  await page.goto('/app/?emu=office_large&test=1&reset=1');
   await seedReturningStore(page);
-  await enter(page, '/app/?emu=office_large');
+  await enter(page, '/app/?emu=office_large&test=1');
   await expect.poll(async () => (await st(page)).roomReady, { timeout: 30_000 }).toBe(true);
   await page.evaluate(() => (window as any).__loci.menu('import'));
   await expect.poll(async () => (await st(page)).pair, { timeout: 30_000 }).not.toBeNull();

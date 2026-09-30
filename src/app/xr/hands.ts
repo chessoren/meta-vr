@@ -70,7 +70,7 @@ export const Hands = {
   left: blank('left'),
   right: blank('right'),
   /** Debug/test overrides: force a gesture regardless of joints. */
-  force: { palmUp: null as Handedness | null, fist: null as Handedness | null, pinch: null as Handedness | null },
+  force: { palmUp: null as Handedness | null, fist: null as Handedness | null, pinch: null as Handedness | null, palmFace: null as Handedness | null },
   any(pred: (h: HandState) => boolean): HandState | null {
     if (pred(this.right)) return this.right;
     if (pred(this.left)) return this.left;
@@ -111,6 +111,9 @@ export function updateHands(frame: XRFrame, ref: XRReferenceSpace, dt: number, t
         h.pinching = false;
         h.pinchEnded = true;
       }
+      // Lost tracking: no stale gesture may keep a menu open or trigger a reveal.
+      h.palmUp = h.palmToFace = h.fist = false;
+      h.palmUpTime = h.palmToFaceTime = h.fistTime = 0;
       continue;
     }
     // Palm normal: −Y of the metacarpal joint.
@@ -130,8 +133,11 @@ export function updateHands(frame: XRFrame, ref: XRReferenceSpace, dt: number, t
     }
     h.pinchPoint.copy(h.indexTip).add(h.thumbTip).multiplyScalar(0.5);
 
-    // Palm up: normal points to the sky.
-    const up = Hands.force.palmUp === h.handedness || h.palmNormal.y > (h.palmUp ? 0.55 : 0.78);
+    // Palm up (reveal): normal points to the sky AND the hand is raised in front of the eyes —
+    // a hand resting palm-up in the lap must never reveal an answer.
+    _v.copy(h.palm).sub(XR.head.pos);
+    const inView = h.palm.y > XR.head.pos.y - 0.45 && _v.normalize().dot(XR.head.forward) > 0.55;
+    const up = Hands.force.palmUp === h.handedness || (inView && h.palmNormal.y > (h.palmUp ? 0.55 : 0.78));
     h.palmUp = up;
     h.palmUpTime = up ? h.palmUpTime + dt : 0;
 
@@ -139,7 +145,7 @@ export function updateHands(frame: XRFrame, ref: XRReferenceSpace, dt: number, t
     _v.copy(XR.head.pos).sub(h.palm);
     const d = _v.length();
     _v.divideScalar(d || 1);
-    const face = d < 0.6 && h.palmNormal.dot(_v) > (h.palmToFace ? 0.6 : 0.75);
+    const face = Hands.force.palmFace === h.handedness || (d < 0.6 && h.palmNormal.dot(_v) > (h.palmToFace ? 0.6 : 0.75));
     h.palmToFace = face;
     h.palmToFaceTime = face ? h.palmToFaceTime + dt : 0;
 

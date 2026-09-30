@@ -9,3 +9,4 @@ playwright-report
 public/models/vosk-*
 tests/e2e/__screens__/tmp
 shots
+dist-e2e

@@ -6,8 +6,8 @@ import { assignOrder } from '../core/route';
 import { matchAnswer, pickFromTranscript, voiceGrammar } from '../core/matching';
 import { XR, updateHead, inFrontOfHead } from './xr/context';
 import { Hands, updateHands, type HandState } from './xr/hands';
-import { addTarget, clearTargets, getHovered, pinchSelection, pointer, removeTarget, updateTargeting } from './xr/targeting';
-import { RoomScanner, rayHitsFurniture } from './xr/room-scan';
+import { addTarget, clearTargets, getHovered, pinchSelection, pointer, removeTarget, setPinchBlocked, touchedBy, updateTargeting } from './xr/targeting';
+import { RoomScanner, rayHitsBox } from './xr/room-scan';
 import { RoomManager } from './room/room-manager';
 import { PalaceView } from './palace/palace-view';
 import { LazyFollow } from './ui/layout';
@@ -58,6 +58,18 @@ export class App {
   sessionStartedAt = 0;
   paused = false;
   private flameLook = new THREE.Vector3();
+  /** Where a carried scene will land: a soft golden ring on the object's surface. */
+  private landing = (() => {
+    const m = new THREE.Mesh(
+      new THREE.RingGeometry(0.085, 0.11, 40),
+      new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
+    );
+    m.name = 'landingRing';
+    m.visible = false;
+    m.renderOrder = 5;
+    return m;
+  })();
+  private landingFrom = new THREE.Vector3(Infinity, 0, 0);
   private menuOpenFor = 0;
   private menuHand: HandState | null = null;
   onMenu: ((id: string) => void) | null = null;
@@ -71,7 +83,7 @@ export class App {
     readonly store: AppStore,
   ) {
     this.scene = world.scene;
-    this.scene.add(this.room.root, this.follow.anchor, this.handFx.root);
+    this.scene.add(this.room.root, this.follow.anchor, this.handFx.root, this.landing);
     addLociLights(this.scene);
     this.view = new PalaceView(this.room);
     this.room.onChange = () => {
@@ -101,14 +113,14 @@ export class App {
     this.menu.setVisible(false, false);
     this.flame.root.visible = false;
     // Layout in the reading spot (anchor frame: x right, y up, +z towards the learner).
-    this.card.root.position.set(0, 0.02, 0);
+    this.card.root.position.set(0, 0.035, 0);
     this.caption.root.position.set(0, 0.13, 0.02);
     this.proof.root.position.set(0, 0.02, 0);
     this.qr.root.position.set(0, 0.02, 0);
     this.shelf.root.position.set(0, 0, 0.02);
     this.hint.root.position.set(0.16, -0.12, 0.12);
     this.toast.root.position.set(0, 0.12, 0.05);
-    this.bubbles.forEach((b, i) => b.root.position.set((i - 1) * 0.13, -0.19, 0.14));
+    this.bubbles.forEach((b, i) => b.root.position.set((i - 1) * 0.12, -0.115, 0.07));
   }
 
   // ─── Frame loop ────────────────────────────────────────────────────────────
@@ -192,8 +204,8 @@ export class App {
   // ─── Panels ────────────────────────────────────────────────────────────────
   hideAllPanels() {
     for (const p of [this.card, this.caption, this.proof, this.qr, this.shelf, this.hint, this.toast, ...this.bubbles]) p.setVisible(false, true);
-    clearTargets('bubble');
-    clearTargets('shelf');
+    for (const k of ['bubble', 'shelf', 'item', 'flame']) clearTargets(k);
+    this.reticle.setProgress(null);
   }
 
   // ─── Asking a question (active recall) ────────────────────────────────────
@@ -231,26 +243,23 @@ export class App {
       return id;
     });
     this.menuAllowed = false;
-    let result: AskResult | null = null;
     let voiceText = '';
-    if (voice.available && this.store.data.settings.voice !== false) {
-      voice.listen(voiceGrammar([notion]), (text) => (voiceText = text));
-      this.flame.setMood('listen');
-    }
     try {
-      result = await waitFor<AskResult>(() => {
-        // Hover feedback.
+      if (voice.available && this.store.data.settings.voice !== false) {
+        voice.listen(voiceGrammar([notion]), (text) => (voiceText = text));
+        this.flame.setMood('listen');
+      }
+      // The reveal only arms once no palm is up, so a palm already turned up can't skip the question.
+      let revealArmed = !Hands.any((hh) => hh.palmUp);
+      let result = await waitFor<AskResult>(() => {
         const h = getHovered();
         this.bubbles.forEach((b, i) => b.setState(h?.id === ids[i] ? 'hover' : 'idle'));
-        // Bubble pinch.
         const sel = pinchSelection();
         if (sel?.target?.kind === 'bubble') {
-          const i = ids.indexOf(sel.target.id);
-          const chosen = options[i];
+          const chosen = options[ids.indexOf(sel.target.id)];
           const correct = chosen === notion.answer;
           return { correct, grade: correct ? 'good' : 'again', mode: 'bubble', chosen } as AskResult;
         }
-        // Voice.
         if (voiceText) {
           const said = voiceText;
           voiceText = '';
@@ -259,48 +268,82 @@ export class App {
           if (m.correct || pick?.index === 0) return { correct: true, grade: 'good', mode: 'voice', chosen: notion.answer } as AskResult;
           if (pick) return { correct: false, grade: 'again', mode: 'voice', chosen: notion.distractors[pick.index - 1] } as AskResult;
         }
-        // Palm up → reveal.
-        if (Hands.any((hh) => hh.palmUpTime > 0.35)) return { correct: false, grade: 'again', mode: 'reveal' } as AskResult;
+        if (!Hands.any((hh) => hh.palmUp)) revealArmed = true;
+        if (revealArmed && Hands.any((hh) => hh.palmUpTime > 0.45)) return { correct: false, grade: 'again', mode: 'reveal' } as AskResult;
         return null;
       }, token);
-    } finally {
       voice.stop();
-    }
-    if (!result) throw new Cancelled();
+      if (!result) throw new Cancelled();
 
-    if (result.mode === 'reveal') {
-      sfx.play('reveal');
-      this.card.setAnswer(notion.answer);
-      // Self-grade: two bubbles.
-      this.bubbles[0].setText('I knew it');
-      this.bubbles[2].setText('Not yet');
-      this.bubbles[1].setVisible(false, true);
-      this.bubbles[0].setState('idle');
-      this.bubbles[2].setState('idle');
-      await until(() => !Hands.any((hh) => hh.palmUp), token);
-      const graded = await waitFor<boolean>(() => {
-        const h = getHovered();
-        this.bubbles[0].setState(h?.id === ids[0] ? 'hover' : 'idle');
-        this.bubbles[2].setState(h?.id === ids[2] ? 'hover' : 'idle');
-        const sel = pinchSelection();
-        if (sel?.target?.id === ids[0]) return 'y' as unknown as boolean;
-        if (sel?.target?.id === ids[2]) return 'n' as unknown as boolean;
-        return null;
-      }, token);
-      const knew = (graded as unknown as string) === 'y';
-      result = { correct: knew, grade: knew ? 'good' : 'again', mode: 'reveal' };
-      this.bubbles[knew ? 0 : 2].setState(knew ? 'correct' : 'dim');
-    } else {
-      const i = options.indexOf(result.chosen ?? '');
-      const ci = options.indexOf(notion.answer);
-      this.bubbles.forEach((b, j) => b.setState(j === ci ? 'correct' : j === i ? 'wrong' : 'dim'));
-      this.card.setAnswer(notion.answer, result.correct);
+      if (result.mode === 'reveal') {
+        sfx.play('reveal');
+        this.card.setAnswer(notion.answer);
+        this.say('Knew it?', 'think', 4);
+        this.bubbles[0].setText('I knew it');
+        this.bubbles[2].setText('Not yet');
+        this.bubbles[1].setVisible(false, true);
+        this.bubbles[0].setState('idle');
+        this.bubbles[2].setState('idle');
+        const graded = await waitFor<'y' | 'n'>(() => {
+          const h = getHovered();
+          this.bubbles[0].setState(h?.id === ids[0] ? 'hover' : 'idle');
+          this.bubbles[2].setState(h?.id === ids[2] ? 'hover' : 'idle');
+          const sel = pinchSelection();
+          if (sel?.target?.id === ids[0]) return 'y';
+          if (sel?.target?.id === ids[2]) return 'n';
+          return null;
+        }, token);
+        const knew = graded === 'y';
+        result = { correct: knew, grade: knew ? 'good' : 'again', mode: 'reveal' };
+        this.bubbles[knew ? 0 : 2].setState(knew ? 'correct' : 'dim');
+      } else {
+        const i = options.indexOf(result.chosen ?? '');
+        const ci = options.indexOf(notion.answer);
+        this.bubbles.forEach((b, j) => b.setState(j === ci ? 'correct' : j === i ? 'wrong' : 'dim'));
+        this.card.setAnswer(notion.answer, result.correct);
+      }
+      return result;
+    } finally {
+      // Runs on success AND on cancellation (menu switch, exit, session end).
+      voice.stop();
+      for (const id of ids) removeTarget(id);
+      this.menuAllowed = true;
+      this.debug.options = null;
+      this.debug.notion = null;
     }
-    for (const id of ids) removeTarget(id);
-    this.menuAllowed = true;
-    this.debug.options = null;
-    this.debug.notion = null;
-    return result;
+  }
+
+  /**
+   * A choice between 2–3 short options shown as answer bubbles (gaze + pinch or touch).
+   * Resolves with the chosen index, or null after `timeoutSec`.
+   */
+  async choose(labels: string[], opts: { timeoutSec?: number } = {}): Promise<number | null> {
+    const token = this.token;
+    const slots = labels.length === 2 ? [0, 2] : [0, 1, 2];
+    this.follow.snap();
+    const ids: string[] = [];
+    this.bubbles.forEach((b, i) => {
+      const k = slots.indexOf(i);
+      if (k < 0) return b.setVisible(false, false);
+      b.setText(labels[k]);
+      b.setState('idle');
+      b.setVisible(true, true);
+      const id = `choice-${i}`;
+      ids[k] = id;
+      addTarget({ id, kind: 'bubble', enabled: () => b.root.visible, center: (o) => b.root.getWorldPosition(o), radius: b.radius * 1.2, priority: 3, touchRadius: b.radius * 1.3 });
+    });
+    try {
+      return await waitFor<number>(() => {
+        const h = getHovered();
+        slots.forEach((i, k) => this.bubbles[i].setState(h?.id === ids[k] ? 'hover' : 'idle'));
+        const sel = pinchSelection();
+        const k = sel?.target ? ids.indexOf(sel.target.id) : -1;
+        return k >= 0 ? k + 1 : null; // +1 so index 0 is truthy
+      }, token, opts.timeoutSec).then((v) => (v === null ? null : v - 1));
+    } finally {
+      for (const id of ids) removeTarget(id);
+      this.bubbles.forEach((b) => b.setVisible(false, true));
+    }
   }
 
   async dismissQuestion(delay = 0.9) {
@@ -390,7 +433,7 @@ export class App {
         let best: { fid: string; d: number } | null = null;
         for (const f of furn()) {
           this.room.furnitureMatrix(f, m4);
-          const d = rayHitsFurniture(pointer.origin, pointer.dir, { ...f, center: [0, 0, 0], yaw: 0 }, m4, 0.06);
+          const d = rayHitsBox(pointer.origin, pointer.dir, f.size, m4, 0.06);
           if (d !== null && (!best || d < best.d)) best = { fid: f.id, d };
         }
         const prevFid = target?.fid;
@@ -402,6 +445,7 @@ export class App {
             sfx.play('hover', target.point, { gain: 0.5 });
           }
         }
+        this.updateLanding(target, progress, notion.id);
         if (!hand.pinching) {
           if (target) return true;
           // Released on nothing: float back to the hands.
@@ -412,6 +456,8 @@ export class App {
         return false;
       }, token);
 
+      this.landing.visible = false;
+      this.landingFrom.set(Infinity, 0, 0);
       // Fly onto the object.
       const t0 = target as unknown as { fid: string; point: THREE.Vector3 };
       const f = this.room.getFurniture(t0.fid)!;
@@ -442,16 +488,39 @@ export class App {
       void item;
       return placed;
     } finally {
+      this.landing.visible = false;
       this.debug.presenting = null;
       this.menuAllowed = true;
       scene.dispose();
       holder.removeFromParent();
       this.caption.setVisible(false, true);
       this.card.setVisible(false, true);
-      this.card.root.position.set(0, 0.02, 0);
+      this.card.root.position.set(0, 0.035, 0);
       this.view.setGlobalHalo(null);
       for (const fu of this.room.furniture()) this.view.setHaloOverride(fu.id, null);
     }
+  }
+
+  /** Show the landing ring where the carried scene would go (recomputed only when the aim moves). */
+  private updateLanding(target: { fid: string; point: THREE.Vector3 } | null, progress: PalaceProgress, notionId: string) {
+    if (!target) {
+      this.landing.visible = false;
+      this.landingFrom.set(Infinity, 0, 0);
+      return;
+    }
+    if (this.landingFrom.distanceTo(target.point) > 0.03) {
+      this.landingFrom.copy(target.point);
+      const f = this.room.getFurniture(target.fid);
+      if (!f) return;
+      const spot = this.spotOn(f, target.point, progress, notionId);
+      this.room.toSession([spot.room.x, spot.room.y + 0.005, spot.room.z], this.landing.position);
+      const wall = f.label === 'wall_art' || f.label === 'window_frame' || f.label === 'door_frame' || f.label === 'screen' || f.label === 'manual';
+      if (wall) this.landing.rotation.set(0, f.yaw + this.room.root.rotation.y, 0);
+      else this.landing.rotation.set(-Math.PI / 2, 0, 0);
+    }
+    this.landing.visible = true;
+    const k = 1 + Math.sin(XR.time * 6) * 0.06;
+    this.landing.scale.setScalar(k);
   }
 
   /**
@@ -468,7 +537,14 @@ export class App {
       local.x = THREE.MathUtils.clamp(local.x, -sx / 2 + margin, sx / 2 - margin);
       local.y = THREE.MathUtils.clamp(local.y - 0.12, -sy / 2, sy / 2 - 0.15);
       local.z = sz / 2 + 0.14;
-      if (f.label === 'manual') local.set(0, -0.05, 0.1);
+      if (f.label === 'manual') {
+        // A lantern is tiny: spread its scenes along the wall, left/right of it, facing the room.
+        const n = progress.placements.filter((p) => p.furnitureId === f.id && p.notionId !== notionId).length;
+        const slots = [0, -0.26, 0.26, -0.52, 0.52, -0.78, 0.78];
+        local.set(slots[n % slots.length], -0.06 - Math.floor(n / slots.length) * 0.3, 0.1);
+        const room = new THREE.Vector3(local.x, local.y, local.z).applyMatrix4(new THREE.Matrix4().makeRotationY(f.yaw).setPosition(...f.center));
+        return { local: [local.x, local.y, local.z] as [number, number, number], room };
+      }
     } else {
       local.x = THREE.MathUtils.clamp(local.x, -sx / 2 + margin, sx / 2 - margin);
       local.z = THREE.MathUtils.clamp(local.z, -sz / 2 + margin, sz / 2 - margin);
@@ -495,6 +571,7 @@ export class App {
     const h = this.menuAllowed ? Hands.any((hh) => hh.palmToFaceTime > 0.45) : null;
     if (h) {
       if (this.menuOpenFor === 0) {
+        setPinchBlocked(true);
         this.menu.setVisible(true, true);
         sfx.play('menuOpen', h.palm);
         for (const b of this.menu.buttons)
@@ -518,9 +595,11 @@ export class App {
       this.menu.setHover(hov?.kind === 'menu' ? hov.id.slice(5) : null);
       const other = this.menuHand === Hands.left ? Hands.right : Hands.left;
       let chosen: string | null = null;
-      if (other.pinchStarted || this.menuHand.pinchStarted) {
-        const sel = pinchSelection();
-        if (sel?.target?.kind === 'menu') chosen = sel.target.id.slice(5);
+      // Select with the OTHER hand only: palm-to-face + pinch with the same hand is the
+      // Quest system gesture, and pinching bends the palm away anyway.
+      if (other.pinchStarted) {
+        const t = touchedBy(other) ?? getHovered();
+        if (t?.kind === 'menu') chosen = t.id.slice(5);
       }
       // Poke with the other index finger.
       for (const b of this.menu.buttons) {
@@ -538,6 +617,7 @@ export class App {
     if (this.menuOpenFor === 0) return;
     this.menuOpenFor = 0;
     this.menuGrace = 0;
+    setPinchBlocked(false);
     this.menu.setVisible(false, true);
     clearTargets('menu');
     sfx.play('menuClose');

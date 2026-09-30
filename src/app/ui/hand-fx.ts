@@ -53,8 +53,8 @@ export class HandFx {
         t.ring.position.copy(h.palm);
         t.ring.lookAt(XR.head.pos);
         const geo = t.ring.geometry as THREE.RingGeometry;
-        const want = Math.PI * 2 * this.fistProgress;
-        if (Math.abs(geo.parameters.thetaLength - want) > 0.05) {
+        const want = Math.PI * 2 * Math.round(this.fistProgress * 24) / 24; // 24 steps, not every frame
+        if (Math.abs(geo.parameters.thetaLength - want) > 0.01) {
           geo.dispose();
           t.ring.geometry = new THREE.RingGeometry(0.028, 0.034, 32, 1, Math.PI / 2, want);
         }

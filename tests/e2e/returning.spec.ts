@@ -10,9 +10,9 @@ test('returning learner: palace reloads on the same objects after recentring, du
   test.setTimeout(600_000);
   const errors = collectErrors(page);
   await installClock(page);
-  await page.goto('/app/?emu=living_room&reset=1');
+  await page.goto('/app/?emu=living_room&test=1&reset=1');
   await setClockShift(page, 0);
-  await enter(page, '/app/?emu=living_room');
+  await enter(page, '/app/?emu=living_room&test=1');
 
   // Day 1 — onboarding, quickly.
   await expect.poll(async () => (await st(page)).flow?.step, { timeout: 30_000 }).toBe('pinch');
@@ -38,7 +38,7 @@ test('returning learner: palace reloads on the same objects after recentring, du
 
   // Day 2 — 26 hours later, seated 40 cm to the left and turned 35°, reference space recentred.
   await setClockShift(page, 26 * 3600_000);
-  await page.goto('/app/?emu=living_room');
+  await page.goto('/app/?emu=living_room&test=1');
   await page.locator('#enter:not([disabled])').waitFor({ timeout: 90_000 });
   await page.evaluate(() => (window as any).__loci.pose(-0.4, 1.2, 0.3, 35, false));
   await page.locator('#enter:not([disabled])').click();

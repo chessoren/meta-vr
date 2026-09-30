@@ -41,8 +41,21 @@ export class RoomManager {
     this.confidence = 0;
     this.matched.clear();
     this.anchor = null;
+    this.anchorPose = null;
     this.anchorRestoring = false;
     this.setTransform(0, 0, 0);
+  }
+
+  /**
+   * The runtime recentred the reference space (Quest long-press, or tracking recovery):
+   * keep the room model, solve the room → session transform again from the furniture.
+   */
+  reRegister() {
+    if (!this.room) return;
+    this.source = 'pending';
+    this.confidence = 0;
+    this.matched.clear();
+    this.anchorPose = null;
   }
 
   get ready() {

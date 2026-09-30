@@ -9,9 +9,9 @@ import { collectErrors, enter, lookAt, pinch, placeN, posOf, recallN, st } from 
 test('pause/resume: headset off mid-placement and a full reload both resume exactly', async ({ page }) => {
   test.setTimeout(600_000);
   const errors = collectErrors(page);
-  await page.goto('/app/?emu=living_room&reset=1');
+  await page.goto('/app/?emu=living_room&test=1&reset=1');
   await page.locator('#enter:not([disabled])').waitFor({ timeout: 90_000 });
-  await enter(page, '/app/?emu=living_room');
+  await enter(page, '/app/?emu=living_room&test=1');
   await expect.poll(async () => (await st(page)).flow?.step, { timeout: 30_000 }).toBe('pinch');
   await lookAt(page, await posOf(page, 'flame'));
   await pinch(page);
@@ -56,9 +56,9 @@ test('pause/resume: headset off mid-placement and a full reload both resume exac
 test('sparse room: no furniture detected → learner plants lanterns on the walls, onboarding still works', async ({ page }) => {
   test.setTimeout(420_000);
   const errors = collectErrors(page);
-  await page.goto('/app/?emu=empty&reset=1');
+  await page.goto('/app/?emu=empty&test=1&reset=1');
   await page.locator('#enter:not([disabled])').waitFor({ timeout: 90_000 });
-  await enter(page, '/app/?emu=empty');
+  await enter(page, '/app/?emu=empty&test=1');
   await expect.poll(async () => (await st(page)).flow?.step, { timeout: 30_000 }).toBe('pinch');
   await lookAt(page, await posOf(page, 'flame'));
   await pinch(page);

@@ -20,6 +20,8 @@ export type HaloState = 'off' | 'scan' | 'glow' | 'due' | 'active' | 'ember';
 export interface Halo {
   root: THREE.Object3D;
   setState(s: HaloState): void;
+  /** Replay the scan sweep from the start. */
+  restartScan(): void;
   readonly state: HaloState;
   /** Accent colour (default warm gold). */
   setColor(c: THREE.ColorRepresentation): void;
@@ -283,9 +285,15 @@ export function createHalo(size: THREE.Vector3, o: { color?: THREE.ColorRepresen
       return state;
     },
     setState(s: HaloState) {
-      if (s === state && s !== 'scan') return;
+      // Idempotent: callers may set the same state every frame; the scan sweep only
+      // restarts on a real transition into 'scan' (or an explicit restartScan()).
+      if (s === state) return;
       state = s;
       if (s === 'scan') scanT = 0;
+    },
+    restartScan() {
+      state = 'scan';
+      scanT = 0;
     },
     setColor(c: THREE.ColorRepresentation) {
       baseColor.set(c);

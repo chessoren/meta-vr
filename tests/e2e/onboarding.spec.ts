@@ -42,7 +42,7 @@ test('first five minutes: 5 capitals placed and recalled, 5/5 proof', async ({ p
   page.on('console', (m) => {
     if (m.type() === 'error' && !/ERR_TUNNEL|Failed to load resource/.test(m.text())) errors.push(m.text());
   });
-  await page.goto('/app/?emu=living_room&reset=1');
+  await page.goto('/app/?emu=living_room&test=1&reset=1');
   await page.locator('#enter:not([disabled])').click({ timeout: 90_000 });
   await expect.poll(async () => (await st(page)).session, { timeout: 30_000 }).toBe(true);
 

@@ -79,18 +79,23 @@ export function updateTargeting(dt: number) {
     pointer.dir.copy(XR.head.forward);
     pointer.source = 'head';
   }
+  // Priority first (UI > items > furniture), then angular score. A precise hit counts as
+  // "inside" (slightly negative score, nearer hits first) but never outranks higher-priority UI.
   let best: Target | null = null;
   let bestScore = Infinity;
+  let bestPri = -Infinity;
   const slack = pointer.source === 'eye' ? 0.05 : 0.035; // ~2–3° grace
   for (const t of targets.values()) {
     if (!t.enabled()) continue;
     let s: number;
     if (t.hit) {
       const d = t.hit(pointer.origin, pointer.dir);
-      s = d === null ? score(t) + 0.02 : -0.5 - 1 / (1 + d);
+      s = d === null ? score(t) + 0.02 : -0.02 + Math.min(d, 10) * 0.001;
     } else s = score(t);
-    s -= (t.priority ?? 0) * 0.02;
-    if (s < slack && s < bestScore) {
+    if (s >= slack) continue;
+    const pri = t.priority ?? 0;
+    if (pri > bestPri || (pri === bestPri && s < bestScore)) {
+      bestPri = pri;
       bestScore = s;
       best = t;
     }
@@ -119,7 +124,14 @@ export function touchedBy(hand: HandState): Target | null {
  * The target a pinch that STARTED this frame selects: direct touch first, else the gazed target.
  * Returns the hand too, so callers can grab with it.
  */
+let pinchBlocked = false;
+/** While a modal UI (the palm menu) is open, flows must not consume pinches. */
+export function setPinchBlocked(b: boolean) {
+  pinchBlocked = b;
+}
+
 export function pinchSelection(): { target: Target | null; hand: HandState } | null {
+  if (pinchBlocked) return null;
   for (const hand of [Hands.right, Hands.left]) {
     if (!hand.pinchStarted) continue;
     return { target: touchedBy(hand) ?? hovered, hand };

@@ -123,39 +123,56 @@ export async function importFlow(app: App) {
   const token = app.token;
   app.hideAllPanels();
   app.flame.root.visible = true;
+  const newSlot = async () => {
+    const slot = await createPairSlot();
+    token.throwIfCancelled();
+    app.qr.setSlot(slot.url, slot.code);
+    app.debug.pair = slot.code;
+    app.qr.setState('waiting');
+    return slot;
+  };
   let slot;
   try {
-    slot = await createPairSlot();
-  } catch {
+    slot = await newSlot();
+  } catch (e) {
+    if (token.cancelled) throw e;
     app.say('Offline', 'think', 3);
     await wait(3, token);
     return null;
   }
-  app.qr.setSlot(slot.url, slot.code);
-  app.debug.pair = slot.code;
-  app.qr.setState('waiting');
   app.follow.snap();
   app.qr.setVisible(true, true);
+  token.onCancel(() => app.qr.setVisible(false, true));
   app.say('Scan me', 'point', 5);
   sfx.play('menuOpen');
   let connected = false;
   let result: Palace | null = null;
   // Polling loop (every 2 s of XR time; freezes while the headset is off).
-  while (!result && !token.cancelled) {
+  while (!result) {
     const r = await pollPalace(slot);
+    token.throwIfCancelled();
     if (r?.status === 'importing' && !connected) {
       connected = true;
       app.qr.setState('receiving');
       sfx.play('phoneConnected');
       app.say('Connected!', 'happy', 3);
     }
-    if (r?.status === 'ready' && r.palace) {
+    // 'consumed' still carries the palace for a while: a lost first response must not lose the import.
+    if ((r?.status === 'ready' || r?.status === 'consumed') && r.palace) {
       result = r.palace;
       break;
     }
+    if (r?.status === 'expired' || (r?.status === 'consumed' && !r.palace)) {
+      // The 30-minute code expired while waiting: show a fresh one.
+      try {
+        slot = await newSlot();
+        connected = false;
+      } catch {
+        /* offline for a moment — keep trying */
+      }
+    }
     await wait(2, token);
   }
-  if (!result) return null;
   app.qr.setState('ready');
   sfx.play('importReady');
   app.store.addPalace(result);
@@ -170,7 +187,7 @@ export async function shelfFlow(app: App): Promise<string | null> {
   const token = app.token;
   const books = app.store.palaces().map((p) => {
     const pr = app.store.progress(p.id);
-    const plan = planToday(p, pr, Date.now(), {});
+    const plan = planToday(p, pr, Date.now(), { tzOffsetMin: -new Date().getTimezoneOffset() });
     return { id: p.id, title: p.title, subject: p.subject, solid: plan.solidCount, total: plan.total, examLine: plan.daysLeft !== undefined ? `exam in ${plan.daysLeft} d` : undefined };
   });
   books.push({ id: 'import', title: 'New from phone', subject: 'Import', solid: 0, total: 0, examLine: undefined, isNew: true } as never);

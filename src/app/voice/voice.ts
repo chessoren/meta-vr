@@ -5,8 +5,8 @@
  * GRAMMAR restricted to the spoken forms of the current question's answer + distractors,
  * which makes a small 40 MB model very accurate. Audio never leaves the headset.
  *
- * The model archive is served from VITE_VOSK_MODEL_URL (default /models/vosk-model-small-en-us-0.15.tar.gz,
- * fetched once and cached by the browser). If it is missing or the mic is denied, voice is
+ * The model archive (≈ 40 MB, fetched once, then cached by the browser) comes from the first
+ * reachable of MODEL_URLS (see scripts/fetch-voice-model.sh to self-host it). If it is missing or the mic is denied, voice is
  * simply unavailable and the learner answers with bubbles — nothing breaks.
  */
 import workerUrl from '@lichess-org/vosk-browser/dist/vosk.worker.js?url';
@@ -18,7 +18,21 @@ type Recognizer = InstanceType<Client['KaldiRecognizer']>;
 
 export type VoiceStatus = 'off' | 'loading' | 'ready' | 'listening' | 'unavailable';
 
-const MODEL_URL = (import.meta.env.VITE_VOSK_MODEL_URL as string | undefined) ?? '/models/vosk-model-small-en-us-0.15.tar.gz';
+/** Candidate model locations, first reachable wins: explicit env → self-hosted → the vosk-browser project's public copy. */
+export const MODEL_URLS = [
+  import.meta.env.VITE_VOSK_MODEL_URL as string | undefined,
+  '/models/vosk-model-small-en-us-0.15.tar.gz',
+  'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz',
+].filter((u): u is string => !!u);
+
+/** First model URL that answers (HEAD), or null. */
+export async function findModelUrl(): Promise<string | null> {
+  for (const url of MODEL_URLS) {
+    const r = await fetch(url, { method: 'HEAD' }).catch(() => null);
+    if (r?.ok) return url;
+  }
+  return null;
+}
 
 export class Voice {
   status: VoiceStatus = 'off';
@@ -40,10 +54,10 @@ export class Voice {
     this.loading = (async () => {
       try {
         this.status = 'loading';
-        const head = await fetch(MODEL_URL, { method: 'HEAD' }).catch(() => null);
-        if (!head || !head.ok) throw new Error(`voice model not found at ${MODEL_URL}`);
+        const modelUrl = await findModelUrl();
+        if (!modelUrl) throw new Error(`voice model not found (${MODEL_URLS.join(', ')})`);
         const vosk: VoskModule = await import('@lichess-org/vosk-browser');
-        this.client = await vosk.createVoskClient({ modelUrl: MODEL_URL, workerUrl, wasmUrl, logLevel: -1 });
+        this.client = await vosk.createVoskClient({ modelUrl, workerUrl, wasmUrl, logLevel: -1 });
         this.stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
           video: false,

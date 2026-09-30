@@ -50,7 +50,7 @@ The API (`/api/*`) runs inside the Vite dev server with the same handlers Vercel
 
 WebXR needs **HTTPS**, so deploy first:
 
-1. **Deploy to Vercel.** Import the repo in Vercel (framework: *Other*; `vercel.json` already sets `npm run build` → `dist/` and the API function), or run `npx vercel` / `npx vercel --prod` from the repo.
+1. **Deploy to Vercel.** Import the repo in Vercel (framework: *Other*). `vercel.json` runs `npm run build:vercel`, which writes a ready-made [Build Output API](https://vercel.com/docs/build-output-api/v3) bundle to `.vercel/output` (static site + the whole API bundled into one function). Or run `npx vercel --prod` from the repo. Then add the **Upstash / Vercel KV** integration (Storage tab) so pairing codes survive across function instances — see `docs/DEPLOY.md`.
 2. On the headset: finish **Space Setup** for the room (draw desk, bed, shelf, lamp, window…), and turn on **hand tracking**.
 3. Open `https://<your-domain>/app/` in **Meta Quest Browser** and tap **Enter**. Allow hand tracking and spatial data, and the microphone for voice answers.
 4. **Install as an app (PWA):** in Quest Browser, open the page menu and choose *Install app* / *Add to library* **[verify: wording on the current OS]**. Loci then launches from your app library, full screen, with its own icon. The manifest is `public/manifest.webmanifest` (scope `/app/`).
@@ -59,11 +59,11 @@ For quick local testing on the headset, you can also forward the dev server over
 
 ### Voice model (optional)
 
-Voice answers use Vosk in the browser (English, grammar-constrained). The model archive is not in git (`public/models/vosk-*` is ignored):
+Voice answers use Vosk in the browser (English, grammar-constrained, audio never leaves the headset). The app looks for the model, in order, at `VITE_VOSK_MODEL_URL`, `/models/vosk-model-small-en-us-0.15.tar.gz` (self-hosted: run `./scripts/fetch-voice-model.sh`), then the vosk-browser project's public copy on `ccoreilly.github.io`. When a model is reachable, the 2D start page shows **Enable voice answers** (the microphone permission is asked there, before entering). Without it, Loci simply offers the three answer bubbles.
 
-- Put `vosk-model-small-en-us-0.15.tar.gz` in `public/models/`, or point `VITE_VOSK_MODEL_URL` at a hosted copy.
-- The official models are at <https://alphacephei.com/vosk/models> (they're distributed as `.zip`; repack the folder as `.tar.gz` for vosk-browser). See `src/app/voice/voice.ts`.
-- Without the model, Loci simply offers the three answer bubbles.
+### Desktop preview (no headset)
+
+`/app/?emu=living_room` runs the whole experience in a desktop browser with Meta's WebXR emulator and a real scanned room: **move the mouse** to look, **hold the click** to pinch, <kbd>Space</kbd> palm up (reveal), <kbd>M</kbd> palm menu, hold <kbd>F</kbd> to exit. Rooms: `living_room`, `office_small`, `office_large`, `music_room`, `meeting_room`, `empty` (sparse-room fallback).
 
 ## Environment variables
 

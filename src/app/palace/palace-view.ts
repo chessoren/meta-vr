@@ -30,10 +30,13 @@ export interface Item {
   mode: ItemMode;
   tier: Tier;
   modeTime: number;
+  /** Last appearance applied to the scene (setAppearance/traverse only run on change). */
+  shown: string;
 }
 
 const _v = new THREE.Vector3();
 const EMBER_GEO = new THREE.SphereGeometry(0.012, 10, 8);
+const HALO_RANK: Record<HaloState, number> = { off: 0, ember: 1, glow: 2, scan: 3, due: 4, active: 5 };
 
 export class PalaceView {
   readonly root = new THREE.Group();
@@ -43,6 +46,7 @@ export class PalaceView {
   private halos = new Map<string, IHalo>();
   /** Hand-placed wall anchors are real objects too: a small floating candle-lantern. */
   private lanterns = new Map<string, IScene>();
+  private haloScratch = new Map<string, HaloState>();
   private haloOverride = new Map<string, HaloState>();
   private globalHalo: HaloState | null = null;
   private emberMat = new THREE.MeshBasicMaterial({ color: '#ffcf7a', transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
@@ -108,6 +112,7 @@ export class PalaceView {
         mode: 'idle',
         tier: 'new',
         modeTime: 0,
+        shown: '',
       };
       this.items.set(notion.id, it);
     }
@@ -209,8 +214,9 @@ export class PalaceView {
   }
 
   update(dt: number, t: number) {
-    const haloState = new Map<string, HaloState>();
-    const rank: Record<HaloState, number> = { off: 0, ember: 1, glow: 2, scan: 3, due: 4, active: 5 };
+    const haloState = this.haloScratch;
+    haloState.clear();
+    const rank = HALO_RANK;
     for (const it of this.items.values()) {
       it.modeTime += dt;
       this.faceSeat(it);
@@ -255,20 +261,18 @@ export class PalaceView {
       }
       if (appearance !== 'hidden' || it.scene) {
         const sc = this.sceneOf(it);
-        sc.setAppearance(appearance);
-        if (appearance === 'pale' || appearance === 'gold') {
+        const key = `${appearance}:${intensity}`;
+        if (key !== it.shown) {
+          it.shown = key;
+          sc.setAppearance(appearance);
           // Ghosts and statues never show text (it would give the answer away).
+          const ghost = appearance === 'pale' || appearance === 'gold';
           sc.root.traverse((o) => {
-            if (o.userData.lociText) o.visible = false;
+            if (o.userData.lociText) o.visible = !ghost;
           });
-          sc.root.scale.setScalar(appearance === 'gold' ? 0.55 : 0.9);
-        } else {
-          sc.root.traverse((o) => {
-            if (o.userData.lociText) o.visible = true;
-          });
-          sc.root.scale.setScalar(1);
+          sc.root.scale.setScalar(appearance === 'gold' ? 0.55 : appearance === 'pale' ? 0.9 : 1);
+          sc.setIntensity(intensity);
         }
-        sc.setIntensity(intensity);
         if (appearance === 'full') sc.update(dt, t);
       }
       it.ember.visible = emberOn;

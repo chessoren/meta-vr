@@ -265,16 +265,26 @@ export class RoomScanner {
   }
 }
 
-/** Ray vs oriented box (Furniture in some frame). Returns distance or null. */
-export function rayHitsFurniture(origin: THREE.Vector3, dir: THREE.Vector3, f: Furniture, frameMatrix?: THREE.Matrix4, pad = 0.04): number | null {
-  const m = new THREE.Matrix4().makeRotationY(f.yaw).setPosition(f.center[0], f.center[1], f.center[2]);
-  if (frameMatrix) m.premultiply(frameMatrix);
-  const inv = m.clone().invert();
-  const o = origin.clone().applyMatrix4(inv);
-  const d = dir.clone().transformDirection(inv);
-  const half = new THREE.Vector3(f.size[0] / 2 + pad, f.size[1] / 2 + pad, f.size[2] / 2 + pad);
-  const box = new THREE.Box3(half.clone().negate(), half);
-  const hit = new THREE.Ray(o, d).intersectBox(box, new THREE.Vector3());
-  if (!hit) return null;
-  return hit.applyMatrix4(m).distanceTo(origin);
+const _inv = new THREE.Matrix4();
+const _ro = new THREE.Vector3();
+const _rd = new THREE.Vector3();
+const _half = new THREE.Vector3();
+const _hitP = new THREE.Vector3();
+const _ray = new THREE.Ray();
+const _rbox = new THREE.Box3();
+
+/**
+ * Ray vs an oriented box of `size` whose centre/orientation is `boxMatrix` (session frame).
+ * Returns the distance along the ray or null. Allocation-free (called every frame per target).
+ */
+export function rayHitsBox(origin: THREE.Vector3, dir: THREE.Vector3, size: readonly number[], boxMatrix: THREE.Matrix4, pad = 0.04): number | null {
+  _inv.copy(boxMatrix).invert();
+  _ro.copy(origin).applyMatrix4(_inv);
+  _rd.copy(dir).transformDirection(_inv);
+  _half.set(size[0] / 2 + pad, size[1] / 2 + pad, size[2] / 2 + pad);
+  _rbox.min.copy(_half).negate();
+  _rbox.max.copy(_half);
+  _ray.set(_ro, _rd);
+  if (!_ray.intersectBox(_rbox, _hitP)) return null;
+  return _hitP.applyMatrix4(boxMatrix).distanceTo(origin);
 }

@@ -5,9 +5,9 @@ import { collectErrors, enter, lookAt, seedReturningStore, st } from './helpers'
 test('perf budget: 20 scenes placed stays under draw-call and triangle budgets', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = collectErrors(page);
-  await page.goto('/app/?emu=living_room&reset=1');
+  await page.goto('/app/?emu=living_room&test=1&reset=1');
   await seedReturningStore(page);
-  await enter(page, '/app/?emu=living_room');
+  await enter(page, '/app/?emu=living_room&test=1');
   await expect.poll(async () => (await st(page)).roomReady, { timeout: 30_000 }).toBe(true);
   const results: Record<string, unknown> = {};
   for (const mode of ['idle', 'reveal'] as const) {

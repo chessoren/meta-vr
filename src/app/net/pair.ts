@@ -22,10 +22,10 @@ export async function createPairSlot(): Promise<PairSlot> {
   return { ...j, url: `${importBaseUrl()}/${j.code}` };
 }
 
-export async function pollPalace(slot: PairSlot): Promise<{ status: PairStatus; palace?: Palace } | null> {
+export async function pollPalace(slot: PairSlot): Promise<{ status: PairStatus | 'expired'; palace?: Palace } | null> {
   try {
     const r = await fetch(`/api/palace?code=${encodeURIComponent(slot.code)}&secret=${encodeURIComponent(slot.secret)}`, { cache: 'no-store' });
-    if (r.status === 404) return { status: 'consumed' };
+    if (r.status === 404) return { status: 'expired' };
     if (!r.ok) return null;
     return (await r.json()) as { status: PairStatus; palace?: Palace };
   } catch {

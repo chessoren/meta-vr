@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { App } from '../app';
 import type { Palace, PalaceProgress } from '../../core/types';
-import { rayHitsFurniture } from '../xr/room-scan';
+import { rayHitsBox } from '../xr/room-scan';
 import { addTarget, getHovered, getHoverTime, pinchSelection, removeTarget, clearTargets } from '../xr/targeting';
 import { until, wait, waitFor } from '../flow/runtime';
 import { XR } from '../xr/context';
@@ -9,6 +9,9 @@ import { sfx } from '../sfx';
 import { soundIndex } from './scan';
 
 const _v = new THREE.Vector3();
+const _w = new THREE.Vector3();
+const _hit = new THREE.Vector3();
+const _m4 = new THREE.Matrix4();
 const DWELL_SELECT = 1.6; // seconds of gaze to select hands-free
 
 /** All scenes dissolve in route order; only a small ember stays on each object. */
@@ -66,14 +69,18 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
     void app.flameTo(p.clone().add(toHead).add(new THREE.Vector3(0, 0.06, 0)), 0.9).catch(() => {});
     app.flame.pointAt(p);
 
-    // Selection targets for every due item.
+    // Selection targets for every due item (removed in every case, including cancellation).
     const tids: string[] = [];
+    const drop = () => {
+      for (const t of tids) removeTarget(t);
+      tids.length = 0;
+    };
+    token.onCancel(drop);
     for (const id of queue) {
       const it = app.view.items.get(id)!;
       const f = app.room.getFurniture(it.placement.furnitureId);
       const tid = `item-${id}`;
       tids.push(tid);
-      const m4 = new THREE.Matrix4();
       addTarget({
         id: tid,
         kind: 'item',
@@ -84,16 +91,15 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
         hit: f
           ? (origin, dir) => {
               // Gazing at the furniture selects the due item on it closest to the gaze.
-              app.room.furnitureMatrix(f, m4);
-              const d = rayHitsFurniture(origin, dir, { ...f, center: [0, 0, 0], yaw: 0 }, m4, 0.08);
+              app.room.furnitureMatrix(f, _m4);
+              const d = rayHitsBox(origin, dir, f.size, _m4, 0.08);
               if (d === null) return null;
-              const hitP = _v.copy(origin).addScaledVector(dir, d);
+              _hit.copy(origin).addScaledVector(dir, d);
               let bestId = id;
               let bestD = Infinity;
               for (const q of queue) {
-                const qi = app.view.items.get(q);
-                if (qi?.placement.furnitureId !== f.id) continue;
-                const dd = app.view.worldPos(q, new THREE.Vector3()).distanceTo(hitP);
+                if (app.view.items.get(q)?.placement.furnitureId !== f.id) continue;
+                const dd = app.view.worldPos(q, _w).distanceTo(_hit);
                 if (dd < bestD) {
                   bestD = dd;
                   bestId = q;
@@ -105,25 +111,29 @@ export async function recallAll(app: App, palace: Palace, progress: PalaceProgre
       });
     }
     let lastHover: string | null = null;
-    const chosenTid = await waitFor<string>(() => {
-      const h = getHovered();
-      const hid = h?.kind === 'item' ? h.id.slice(5) : null;
-      if (hid !== lastHover) {
-        if (lastHover && queue.includes(lastHover)) app.view.setMode(lastHover, 'due');
-        if (hid) {
-          app.view.setMode(hid, 'active');
-          sfx.play('hover', app.view.worldPos(hid, _v), { gain: 0.4 });
+    let chosenTid: string | null;
+    try {
+      chosenTid = await waitFor<string>(() => {
+        const h = getHovered();
+        const hid = h?.kind === 'item' ? h.id.slice(5) : null;
+        if (hid !== lastHover) {
+          if (lastHover && queue.includes(lastHover)) app.view.setMode(lastHover, 'due');
+          if (hid) {
+            app.view.setMode(hid, 'active');
+            sfx.play('hover', app.view.worldPos(hid, _v), { gain: 0.4 });
+          }
+          lastHover = hid;
         }
-        lastHover = hid;
-      }
-      app.reticle.setProgress(hid ? Math.min(1, getHoverTime() / DWELL_SELECT) : null);
-      const sel = pinchSelection();
-      if (sel?.target?.kind === 'item') return sel.target.id;
-      if (hid && getHoverTime() >= DWELL_SELECT) return h!.id;
-      return null;
-    }, token);
-    app.reticle.setProgress(null);
-    for (const t of tids) removeTarget(t);
+        app.reticle.setProgress(hid ? Math.min(1, getHoverTime() / DWELL_SELECT) : null);
+        const sel = pinchSelection();
+        if (sel?.target?.kind === 'item') return sel.target.id;
+        if (hid && getHoverTime() >= DWELL_SELECT) return h!.id;
+        return null;
+      }, token);
+    } finally {
+      app.reticle.setProgress(null);
+      drop();
+    }
     if (!chosenTid) continue;
     const id = chosenTid.slice(5);
     const it = app.view.items.get(id)!;

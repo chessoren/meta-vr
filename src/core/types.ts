@@ -181,6 +181,8 @@ export interface RoomModel {
   seatYaw: number;
   /** Persistent WebXR anchor handle placed at the room origin (fallback registration). */
   anchorUuid?: string;
+  /** The learner was already offered the headset's room capture (Space Setup) for this room. */
+  captureOffered?: boolean;
 }
 
 /** A notion placed on (or near) a piece of furniture. */

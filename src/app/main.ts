@@ -1,17 +1,17 @@
 import { World, SessionMode } from '@iwsdk/core';
 import * as THREE from 'three';
-import { installEmulator, emuLookAt, emuPose, type EmuRoom } from './emulation';
+import { installEmulator, emuLookAt, emuPose, installDesktopControls, type EmuRoom } from './emulation';
 import { createBootUI } from './boot-ui';
 import { App } from './app';
 import { AppStore } from './state/store';
-import { Cancelled, until, waitFor } from './flow/runtime';
+import { Cancelled, until, wait, waitFor } from './flow/runtime';
 import { onboarding, type OnboardingStep } from './flows/onboarding';
 import { dailySession, importFlow, shelfFlow } from './flows/session';
 import { XR } from './xr/context';
 import { Hands } from './xr/hands';
-import { addTarget, clearTargets, pinchSelection } from './xr/targeting';
+import { addTarget, clearTargets, getHovered, pinchSelection, removeTarget } from './xr/targeting';
 import { sfx } from './sfx';
-import { voice } from './voice/voice';
+import { voice, findModelUrl } from './voice/voice';
 import { installRealVisuals, installAudio } from './wiring';
 
 const params = new URLSearchParams(location.search);
@@ -21,7 +21,8 @@ async function boot() {
   const ui = createBootUI();
   const t0 = performance.now();
   if (emu) await installEmulator(emu, params.get('device') ?? 'quest3');
-  if (params.has('reset')) localStorage.removeItem('loci.store.v1');
+  // Test/debug only: never let a stray URL wipe a learner's palaces in production.
+  if (params.has('reset') && (emu || import.meta.env.DEV)) localStorage.removeItem('loci.store.v1');
 
   await Promise.all([installRealVisuals(), installAudio(), document.fonts?.ready]);
   const store = new AppStore();
@@ -29,7 +30,8 @@ async function boot() {
   const world = await World.create(document.getElementById('scene-container') as HTMLDivElement, {
     xr: {
       sessionMode: SessionMode.ImmersiveAR,
-      offer: 'none',
+      // On a real headset, also let the browser offer its own "Enter" prompt (one pinch to come back).
+      offer: emu ? 'none' : 'always',
       launchOnSessionGranted: true,
       features: {
         handTracking: { required: true },
@@ -50,7 +52,9 @@ async function boot() {
   const w = window as unknown as Record<string, unknown>;
   w.__world = world;
   w.__app = app;
-  installDebugHooks(app);
+  if (emu || import.meta.env.DEV) installDebugHooks(app);
+  addEventListener('pagehide', () => store.saveNow());
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && store.saveNow());
 
   // ── Frame loop ──────────────────────────────────────────────────────────────
   world.onXRFrame((frame, delta) => {
@@ -80,14 +84,30 @@ async function boot() {
       app.paused = false;
       XR.session = null;
       XR.frame = null;
+      XR.head.valid = false;
       store.saveNow();
       app.newToken();
+      app.hideAllPanels();
+      app.closeMenu();
+      voice.stop();
+      voice.suspend();
       running = null;
       clearTargets();
       ui.show(store.data.onboardingDone ? 'Back to my palace' : 'Continue');
     });
     app.room.begin(store.room());
     app.scanner.reset();
+    XR.head.valid = false;
+    // Recentring moves the reference space: re-register the room on its furniture.
+    const watchRef = () => {
+      const ref = world.renderer.xr.getReferenceSpace();
+      if (!ref) return void requestAnimationFrame(watchRef);
+      ref.addEventListener('reset', () => {
+        app.scanner.reset();
+        app.room.reRegister();
+      });
+    };
+    watchRef();
     void app.room.restoreAnchor(session);
     sfx.engine.startAmbience();
     running = director(app).catch((e) => {
@@ -101,6 +121,7 @@ async function boot() {
     if (s) onSession(s);
   });
 
+  if (emu && !params.has('test')) installDesktopControls(Hands);
   app.onMenu = (id) => void onMenu(app, id);
   app.onExit = () => void exit(app, world);
 
@@ -134,9 +155,7 @@ async function boot() {
 }
 
 async function offerVoice(el: HTMLElement) {
-  const url = (import.meta.env.VITE_VOSK_MODEL_URL as string | undefined) ?? '/models/vosk-model-small-en-us-0.15.tar.gz';
-  const head = await fetch(url, { method: 'HEAD' }).catch(() => null);
-  if (!head?.ok) return;
+  if (!(await findModelUrl())) return;
   const a = document.createElement('button');
   a.textContent = '🎙  Enable voice answers';
   a.style.cssText = 'margin-top:8px;background:none;border:1px solid #e9b94988;color:#f6e7c8;border-radius:999px;padding:12px 28px;font:600 18px Inter,system-ui;cursor:pointer';
@@ -151,6 +170,8 @@ async function offerVoice(el: HTMLElement) {
 
 /** Top-level sequencing: onboarding (first time) or the daily session, then idle practice. */
 async function director(app: App) {
+  // Never place anything from a stale head pose: wait for the first tracked frame.
+  await until(() => XR.head.valid, app.token);
   const flow = app.store.flow();
   if (!app.store.data.onboardingDone) {
     await onboarding(app, (flow?.kind === 'onboarding' ? flow.step : 'hello') as OnboardingStep);
@@ -163,29 +184,13 @@ async function director(app: App) {
 
 /** End of the first five minutes: offer to import a real course, or try the History palace. */
 async function afterOnboarding(app: App) {
-  const token = app.token;
   app.proof.setVisible(false, true);
-  app.bubbles[0].setText('Import my course');
-  app.bubbles[2].setText('Try History');
-  app.bubbles[1].setVisible(false, false);
-  for (const i of [0, 2]) {
-    const b = app.bubbles[i];
-    b.setState('idle');
-    b.setVisible(true, true);
-    addTarget({ id: `next-${i}`, kind: 'bubble', enabled: () => b.root.visible, center: (o) => b.root.getWorldPosition(o), radius: b.radius * 1.2, priority: 3, touchRadius: b.radius * 1.3 });
-  }
-  app.follow.snap();
-  app.say('What next?', 'happy', 20);
-  const choice = await waitFor(() => {
-    const s = pinchSelection();
-    return s?.target?.id === 'next-0' ? 'import' : s?.target?.id === 'next-2' ? 'history' : null;
-  }, token, 40);
-  clearTargets('bubble');
-  app.bubbles.forEach((b) => b.setVisible(false, true));
-  if (choice === 'import') {
+  app.say('What next?', 'happy', 40);
+  const choice = await app.choose(['Import my course', 'Try History'], { timeoutSec: 40 });
+  if (choice === 0) {
     const p = await importFlow(app);
     if (p) await dailySession(app, p.id);
-  } else if (choice === 'history') {
+  } else if (choice === 1) {
     await dailySession(app, 'world-wars');
   }
 }
@@ -196,7 +201,62 @@ async function idle(app: App) {
   app.view.setAllModes('idle');
   app.flame.setMood('sleepy');
   await app.flameTo(app.flameHome(), 1.2);
-  await until(() => token.cancelled, token);
+  // Free practice: look at any object that holds a notion and pinch it to test yourself.
+  const palace = app.view.palace;
+  const progress = app.view.progress;
+  if (!palace || !progress) return until(() => token.cancelled, token);
+  for (;;) {
+    const ids = [...app.view.items.keys()];
+    if (!ids.length) return until(() => token.cancelled, token);
+    const picked = await practicePick(app, ids);
+    const it = picked ? app.view.items.get(picked) : undefined;
+    if (!it) continue;
+    app.flame.setMood('happy');
+    const res = await app.ask(it.notion, { sub: 'Practice' });
+    app.recordReview(progress, palace, it.notion.id, res);
+    const pos = app.view.worldPos(it.notion.id, new THREE.Vector3());
+    sfx.play(res.correct ? 'correct' : 'wrong', pos);
+    app.view.setMode(it.notion.id, res.correct ? 'reveal' : 'replay');
+    if (!res.correct) {
+      app.caption.setText(it.notion.scene.caption, it.notion.scene.hooks);
+      app.caption.setVisible(true, true);
+    }
+    await app.dismissQuestion(res.correct ? 1.2 : 2.6);
+    app.caption.setVisible(false, true);
+    await wait(1.4, token);
+    app.view.setMode(it.notion.id, 'idle');
+    app.flame.setMood('sleepy');
+  }
+}
+
+/** Gaze + pinch (or a long look) on a placed notion; targets are removed on every exit path. */
+async function practicePick(app: App, ids: string[]): Promise<string | null> {
+  const token = app.token;
+  const tids = ids.map((id) => {
+    const tid = `item-${id}`;
+    addTarget({ id: tid, kind: 'item', enabled: () => true, center: (o) => app.view.worldPos(id, o), radius: 0.12 });
+    return tid;
+  });
+  const drop = () => tids.forEach(removeTarget);
+  token.onCancel(drop);
+  let last: string | null = null;
+  try {
+    return await waitFor<string>(() => {
+      const h = getHovered();
+      const hid = h?.kind === 'item' ? h.id.slice(5) : null;
+      if (hid !== last) {
+        if (last) app.view.setMode(last, 'idle');
+        if (hid) app.view.setMode(hid, 'active');
+        last = hid;
+      }
+      const sel = pinchSelection();
+      if (sel?.target?.kind === 'item') return sel.target.id.slice(5);
+      return null;
+    }, token);
+  } finally {
+    if (last) app.view.setMode(last, 'idle');
+    drop();
+  }
 }
 
 async function onMenu(app: App, id: string) {
@@ -341,5 +401,8 @@ function installDebugHooks(app: App) {
 
 boot().catch((e) => {
   console.error(e);
-  document.body.insertAdjacentHTML('beforeend', `<pre style="position:fixed;bottom:0;left:0;color:#f88;z-index:99">${String(e?.stack ?? e)}</pre>`);
+  const pre = document.createElement('pre');
+  pre.style.cssText = 'position:fixed;bottom:0;left:0;right:0;color:#ffcf9e;background:#140d08;z-index:99;white-space:pre-wrap;padding:12px;font:13px monospace';
+  pre.textContent = `Loci could not start: ${String(e?.message ?? e)}`;
+  document.body.appendChild(pre);
 });

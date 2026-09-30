@@ -56,3 +56,52 @@ export function emuPose(x: number, y: number, z: number, yawDeg: number, recente
   emu.device.quaternion.set(0, Math.sin(h), 0, Math.cos(h));
   if (recenter) emu.device.recenter();
 }
+
+/**
+ * Desktop preview controls (for people without a headset — e.g. a jury browsing Devpost):
+ *   move the mouse → look around · hold the left button → pinch · Space → palm up (reveal)
+ *   M → palm menu · F (hold) → closed fist (exit).
+ * Installed only with ?emu=… and not in automated tests (?test).
+ */
+export function installDesktopControls(hands: { force: { pinch: string | null; palmUp: string | null; fist: string | null; palmFace: string | null } }) {
+  const emu = (window as unknown as { __emu?: Emulator }).__emu;
+  if (!emu) return;
+  let yaw = 0;
+  let pitch = -0.15;
+  const apply = () => {
+    const cy = Math.cos(yaw / 2), sy = Math.sin(yaw / 2);
+    const cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
+    emu.device.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
+  };
+  window.addEventListener('mousemove', (e) => {
+    const nx = e.clientX / innerWidth - 0.5;
+    const ny = e.clientY / innerHeight - 0.5;
+    yaw = -nx * 2.4; // ±70°
+    pitch = -ny * 1.4 - 0.1; // ±40°
+    apply();
+  });
+  window.addEventListener('mousedown', (e) => {
+    if (e.button === 0 && (e.target as HTMLElement)?.tagName === 'CANVAS') hands.force.pinch = 'right';
+  });
+  window.addEventListener('mouseup', () => (hands.force.pinch = null));
+  const keys: Record<string, 'palmUp' | 'fist' | 'palmFace'> = { ' ': 'palmUp', f: 'fist', m: 'palmFace' };
+  window.addEventListener('keydown', (e) => {
+    const k = keys[e.key.toLowerCase()];
+    if (k) {
+      hands.force[k] = 'right';
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    const k = keys[e.key.toLowerCase()];
+    if (k) hands.force[k] = null;
+  });
+  const legend = document.createElement('div');
+  legend.id = 'desktop-legend';
+  legend.innerHTML =
+    '<b>Desktop preview</b> · move mouse: look · hold click: pinch · <kbd>Space</kbd> palm up · <kbd>M</kbd> menu · hold <kbd>F</kbd>: exit';
+  legend.style.cssText =
+    'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;background:#1a120bcc;color:#f6e7c8;font:500 14px Inter,system-ui,sans-serif;padding:8px 16px;border-radius:999px;border:1px solid #e9b94955;pointer-events:none;white-space:nowrap';
+  document.body.appendChild(legend);
+  apply();
+}

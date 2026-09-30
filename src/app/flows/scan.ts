@@ -72,8 +72,34 @@ export async function scanRoom(app: App, opts: { introduce: boolean }) {
  */
 export async function ensureLoci(app: App, want: number) {
   const token = app.token;
-  const seen = seenRoute(app).length;
+  let seen = seenRoute(app).length;
   if (seen >= 3) return;
+  // Quest without Space Setup: offer Meta's own room capture first (once per room).
+  const session = app.world.session as (XRSession & { initiateRoomCapture?: () => Promise<void> }) | undefined;
+  const room = app.room.room;
+  if (session?.initiateRoomCapture && room && !room.captureOffered && seen === 0) {
+    room.captureOffered = true;
+    app.store.setRoom(room);
+    app.say('Map your room?', 'think', 30);
+    const pick = await app.choose(['Map my room', 'Use lanterns'], { timeoutSec: 30 });
+    if (pick === 0) {
+      try {
+        await session.initiateRoomCapture();
+        app.say('Looking…', 'think', 30);
+        // Furniture appears as the runtime reloads the scene model.
+        await waitFor(() => (app.scanner.list().filter((f) => f.label !== 'wall_face').length >= 3 ? true : null), token, 20);
+        app.room.mergeFurniture(app.scanner.list(), Date.now());
+        seen = seenRoute(app).length;
+        if (seen >= 3) {
+          app.say('Lovely room', 'happy', 2);
+          await scanRoom(app, { introduce: true });
+          return;
+        }
+      } catch (e) {
+        console.info('[loci] room capture unavailable', e);
+      }
+    }
+  }
   const need = Math.max(1, want - seen);
   app.say('Tap the walls', 'point', 60);
   app.hint.setKind('pinch');

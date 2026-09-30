@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:5176',
+    baseURL: process.env.E2E_PROD ? 'http://localhost:5177' : 'http://localhost:5176',
     viewport: { width: 1280, height: 800 },
     launchOptions: {
       executablePath: process.env.PW_CHROMIUM ?? '/opt/pw-browsers/chromium',
@@ -16,9 +16,10 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: 'npx vite --config vite.test.config.ts',
-    port: 5176,
+    // E2E_PROD=1: test a frozen production build (vite build → preview), immune to edits in progress.
+    command: process.env.E2E_PROD ? 'npx vite build --outDir dist-e2e --emptyOutDir && npx vite preview --outDir dist-e2e --port 5177 --strictPort' : 'npx vite --config vite.test.config.ts',
+    port: process.env.E2E_PROD ? 5177 : 5176,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });

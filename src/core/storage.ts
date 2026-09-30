@@ -108,6 +108,7 @@ function sanitizeRoom(v: unknown): RoomModel | null {
   };
   const anchor = nonEmpty(v.anchorUuid);
   if (anchor) room.anchorUuid = anchor;
+  if (v.captureOffered === true) room.captureOffered = true;
   return room;
 }
 
