@@ -329,7 +329,14 @@ export function composeScene(question: string, answer: string, opts: ComposeOpts
   }
   if (strong && heroHit) {
     const w = heroHit.word;
-    const pre = heroHit.prefixLen > 0 ? heroHit.prefixLen : w.length;
+    let pre = heroHit.prefixLen > 0 ? heroHit.prefixLen : w.length;
+    if (pre >= w.length) {
+      // Whole-word pun (e.g. avocado ↔ "avogadro"): emphasise the syllables both words share.
+      const name = HERO.toLowerCase();
+      let k = 0;
+      while (k < Math.min(name.length, w.length) && name[k] === w[k].toLowerCase()) k++;
+      if (k >= 2 && k < w.length) pre = k;
+    }
     let display = upper(w.slice(0, pre));
     hooks.push(display);
     let rest = w.slice(pre);
