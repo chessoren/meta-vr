@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG_INDEX, TEXT_MODEL_IDS, catalogEntry, isCatalogId, isTextModel } from '../../../src/core/catalog-index';
-import { composeScene, isValidRecipe, phoneticKey, salientCount, soundAlikes, STRONG_LINK, MAX_LABEL } from '../../../src/core/mnemonic';
+import { composeScene, isValidRecipe, phoneticKey, salientCount, soundAlikes, STRONG_LINK, MAX_LABEL, LABEL_CHARS } from '../../../src/core/mnemonic';
 import type { AnimId, SceneRecipe } from '../../../src/core/types';
 import { requiredIds } from './helpers';
 
@@ -127,8 +127,11 @@ describe('composeScene', () => {
     const label = r.actors.find((a) => a.label);
     expect(label).toBeDefined();
     expect(label!.model).toBe('scroll');
-    expect(label!.label).toBe('Treaty of Versailles');
-    expect(r.caption).toContain('"TREATY OF VERSAILLES"');
+    // The label carries the key word only (short, never a truncated sentence) …
+    expect(label!.label).toBe('Versailles');
+    expect(r.caption).toContain('"VERSAILLES"');
+    // … and the hero is the Versailles castle, not a generic fallback.
+    expect(r.actors[0].model).toBe('castle');
   });
 
   it('two-part puns: CAN-BERra', () => {
@@ -196,12 +199,14 @@ describe('composeScene', () => {
     expect(['sign', 'plaque', 'scroll']).toContain(label('Magic word?', 'Xyzzy'));
   });
 
-  it('long answers with a number carry just the number on the label', () => {
+  it('long answers with a date carry just the (short) date on the label, never a truncated sentence', () => {
     const r = composeScene('When did the Berlin Wall fall?', 'On the 9th of November 1989 in Berlin');
     checkRecipe(r);
-    expect(r.actors.find((a) => a.label)?.label).toBe('9');
+    expect(r.actors.find((a) => a.label)?.label).toBe('9 Nov 1989');
     const long = composeScene('Motto?', 'Liberty, equality, fraternity for everyone');
-    expect(long.actors.find((a) => a.label)?.label).toMatch(/…$/);
+    checkRecipe(long);
+    for (const a of long.actors) if (a.label) expect(a.label.length).toBeLessThanOrEqual(LABEL_CHARS);
+    expect(JSON.stringify(long)).not.toContain('…');
   });
 
   it('many seeds keep every scene valid (count phrases, puns, labels)', () => {

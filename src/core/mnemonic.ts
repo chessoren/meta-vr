@@ -131,7 +131,7 @@ const CONCEPTS: Record<string, string[]> = parseTable(
     'revolution:fire,rooster bastille:castle landing:ship,wave peace:dove treaty:dove dna:flask,scientist gene:flask ' +
     'boiling:teacup,fire heat:fire,sun cold:snowflake,penguin ice:snowflake,penguin evolution:fish,frog species:fish,frog ' +
     'discovery:ship,telescope america:eagle,ship columbus:ship,globe liberty:bell,eagle freedom:dove,eagle wall:brickwall ' +
-    'photosynthesis:tree,sun plant:tree cell:tower love:dove music:radio,bell novel:book writer:book',
+    'photosynthesis:tree,sun plant:tree love:dove music:radio,bell novel:book writer:book',
 );
 
 function parseTable(src: string): Record<string, string[]> {
@@ -286,12 +286,15 @@ interface EntryInfo {
   tagStems: Map<string, number>;
   /** single-word tags ≥ 4 letters (compound parts). */
   tagWords: string[];
+  /** Compound-part terms (names first), ≥ 4 letters. */
+  partTerms: Array<{ t: string; isName: boolean }>;
   /** multi-word tags. */
   multi: string[];
   sounds: Array<{ s: string; k: string }>;
 }
 
 let INFO: EntryInfo[] | null = null;
+let INFO_BY_ID = new Map<string, EntryInfo>();
 function info(): EntryInfo[] {
   if (INFO) return INFO;
   INFO = CATALOG_INDEX.map((e) => {
@@ -312,8 +315,10 @@ function info(): EntryInfo[] {
     });
     for (const w of nameWords) if (!names.includes(w) && !tagStems.has(stem(w))) tagStems.set(stem(w), 0.3);
     const sounds = e.soundsLike.map((raw) => lettersOnly(raw)).filter((s) => s.length >= 2).map((s) => ({ s, k: phoneticKey(s) }));
-    return { e, names, idKey: phoneticKey(e.id), tagStems, tagWords, multi, sounds };
+    const partTerms = [...names.map((t) => ({ t, isName: true })), ...tagWords.filter((t) => !names.includes(t)).map((t) => ({ t, isName: false }))].filter((x) => x.t.length >= 4);
+    return { e, names, idKey: phoneticKey(e.id), tagStems, tagWords, partTerms, multi, sounds };
   });
+  INFO_BY_ID = new Map(INFO.map((i) => [i.e.id, i]));
   return INFO;
 }
 
@@ -332,6 +337,8 @@ interface Word {
   /** English meaning words (itself, its stem, French gloss) and their stems. */
   means: string[];
   meanStems: string[];
+  /** Concept table hits of this word: model id → score. */
+  concepts: Map<string, number>;
   /** 0 = first word of the text … 1 = last. */
   pos: number;
   /** Capitalised in the source and not the first word (a proper noun). */
@@ -342,6 +349,8 @@ interface Word {
   index: number;
   /** Salience adjustment (surname +, first name −). */
   bonus: number;
+  /** A merged fixed pair ("World War"): a meaning, never a pun. */
+  pair?: boolean;
 }
 
 const ELISION = /(?<![\p{L}])(?:qu|[dljmnstc])['’](?=\p{L})/giu;
@@ -350,7 +359,9 @@ function makeWord(norm: string, raw: string, proper: boolean, capital: boolean):
   const st = stem(norm);
   const gloss = GLOSS[norm] ?? GLOSS[st] ?? [];
   const means = [...new Set([norm, st, ...gloss])];
-  return { norm, raw, stem: st, key: phoneticKey(norm), means, meanStems: [...new Set(means.map(stem))], pos: 0, proper, capital, index: 0, bonus: 0 };
+  const concepts = new Map<string, number>();
+  for (const m of means) CONCEPTS[m]?.forEach((id, r) => concepts.set(id, Math.max(concepts.get(id) ?? 0, 9.8 - 0.4 * r)));
+  return { norm, raw, stem: st, key: phoneticKey(norm), means, meanStems: [...new Set(means.map(stem))], concepts, pos: 0, proper, capital, index: 0, bonus: 0 };
 }
 
 function tokenize(text: string): Word[] {
@@ -378,8 +389,7 @@ function tokenize(text: string): Word[] {
       const ca = (a as Word & { chunk?: string }).chunk;
       const raw = ca && ca === (b as Word & { chunk?: string }).chunk ? ca : `${a.raw} ${b.raw}`;
       const w = makeWord(pair, raw, a.proper || b.proper, a.capital);
-      w.means.push(...b.means);
-      w.meanStems.push(...b.meanStems);
+      w.pair = true;
       merged.push(w);
       i++;
     } else merged.push(a);
@@ -415,37 +425,45 @@ interface Link {
   source: 'answer' | 'question';
 }
 
-/** How well a word puns on an entry, and on which slice of the word. */
-function soundLink(w: string, wk: string, inf: EntryInfo): { score: number; start: number; end: number } {
-  let best = { score: 0, start: 0, end: 0 };
-  const consider = (score: number, start: number, end: number) => {
-    if (score > best.score) best = { score, start, end };
-  };
+/**
+ * How well a word puns on an entry, and on which slice of the word. With `partialOnly`, only
+ * syllables that sound like the model's own name count (OTTA-wa ~ otter, not WAT-er ~ wave).
+ */
+function soundLink(w: string, wk: string, inf: EntryInfo, partialOnly = false): { score: number; start: number; end: number } {
+  const best = { score: 0, start: 0, end: 0 };
   for (const { s, k } of inf.sounds) {
-    if (w === s) consider(11, 0, w.length);
-    else if (s.length >= 3 && w.startsWith(s)) consider(4 + s.length, 0, s.length);
-    else if (s.length >= 3 && w.length - s.length >= 2 && w.endsWith(s)) consider(3 + s.length * 0.9, w.length - s.length, w.length);
+    if (partialOnly && (w === s || !(inf.idKey.startsWith(k) || k.startsWith(inf.idKey)))) continue;
+    let score = 0;
+    let start = 0;
+    let end = 0;
+    // A whole-word match is a real pun only if one hears the model's name in it (Canberra ~ can);
+    // otherwise it is a curated association (berlin ~ bell).
+    if (w === s) [score, end] = [hearable(w, wk, inf) ? 11 : 9, w.length];
+    else if (s.length >= 3 && w.startsWith(s)) [score, end] = [4 + s.length, s.length];
+    else if (s.length >= 3 && w.length - s.length >= 2 && w.endsWith(s)) [score, start, end] = [3 + s.length * 0.9, w.length - s.length, w.length];
     else if (s.length >= 4 && w.includes(s)) {
-      const i = w.indexOf(s);
-      consider(2 + s.length * 0.6, i, i + s.length);
+      start = w.indexOf(s);
+      [score, end] = [2 + s.length * 0.6, start + s.length];
     }
-    if (k.length >= 3 && wk.startsWith(k)) consider(3 + k.length * 0.5, 0, Math.min(w.length, s.length));
+    if (k.length >= 3 && wk.startsWith(k) && 3 + k.length * 0.5 > score) [score, start, end] = [3 + k.length * 0.5, 0, Math.min(w.length, s.length)];
+    if (score > best.score) [best.score, best.start, best.end] = [score, start, end];
   }
-  // The word sounds like the model's own name (Mona ~ moon, Canberra ~ can): easier to hear.
+  // The word sounds like the model's own name (Mona ~ moon, Canberra ~ can): easier to hear;
+  // and a syllable that IS the model's name (CAT-alyst) is a pun anyone gets.
   if (best.score > 0 && inf.idKey.length >= 2 && wk.startsWith(inf.idKey)) best.score += 0.5;
+  if (best.score > 0 && best.start === 0 && best.end < w.length && inf.names.includes(w.slice(0, best.end))) best.score += 1.5;
   return best;
+}
+
+/** true if the word starts with a syllable that sounds like the model's own name. */
+function hearable(w: string, wk: string, inf: EntryInfo): boolean {
+  if (inf.idKey.length >= 2 && wk.startsWith(inf.idKey)) return true;
+  return inf.sounds.some(({ s, k }) => s.length >= 3 && s.length < w.length && w.startsWith(s) && k.length >= 1 && (inf.idKey.startsWith(k) || k.startsWith(inf.idKey)));
 }
 
 /** Meaning score of a word for an entry (0 = none). */
 function meaningLink(w: Word, inf: EntryInfo): number {
-  let best = 0;
-  for (const m of w.means) {
-    const c = CONCEPTS[m];
-    if (c) {
-      const r = c.indexOf(inf.e.id);
-      if (r >= 0) best = Math.max(best, 9.8 - 0.4 * r);
-    }
-  }
+  let best = w.concepts.get(inf.e.id) ?? 0;
   for (const st of w.meanStems) {
     const rank = inf.tagStems.get(st);
     if (rank !== undefined) best = Math.max(best, 9 + 0.6 * (1 - rank));
@@ -453,36 +471,47 @@ function meaningLink(w: Word, inf: EntryInfo): number {
   return best;
 }
 
+const link = (entry: CatalogEntry, score: number, kind: LinkKind, word: Word, start: number, end: number, source: Link['source']): Link => ({
+  entry,
+  score,
+  kind,
+  word,
+  start,
+  end,
+  source,
+});
+
 /** Every link from a list of words to the catalog (several per entry possible). */
-function linksFor(ws: Word[], source: 'answer' | 'question'): Link[] {
+function linksFor(ws: Word[], source: 'answer' | 'question', context: Word[] = ws): Link[] {
   const out: Link[] = [];
   const all = info();
-  const phrase = ` ${ws.map((w) => w.norm).join(' ')} `;
+  const phrase = ` ${context.map((w) => w.norm).join(' ')} `;
   for (const w of ws) {
     if (!isContent(w)) continue;
     const n = w.norm;
     const perWord: Link[] = [];
     for (const inf of all) {
       const e = inf.e;
-      const mk = (score: number, kind: LinkKind, start = 0, end = n.length): Link => ({ entry: e, score, kind, word: w, start, end, source });
-      if (inf.names.includes(n) || inf.names.includes(w.stem)) perWord.push(mk(12, 'exact'));
-      const s = soundLink(n, w.key, inf);
-      if (s.score > 0) perWord.push(mk(s.score, 'sound', s.start, s.end));
       const m = meaningLink(w, inf);
-      if (m > 0) perWord.push(mk(m, 'meaning'));
+      if (m > 0) perWord.push(link(e, m, 'meaning', w, 0, n.length, source));
+      if (w.pair) continue;
+      if (inf.names.includes(n) || inf.names.includes(w.stem)) perWord.push(link(e, 12, 'exact', w, 0, n.length, source));
+      // A "sound-alike" that is the whole word AND a meaning of it (water → wave) is just a
+      // meaning; keep only a syllable pun on the model's name (OTTA-wa → otter, BER-lin → bear).
+      const s = m > 0 ? soundLink(n, w.key, inf, true) : soundLink(n, w.key, inf);
+      if (s.score > 0) perWord.push(link(e, s.score, 'sound', w, s.start, s.end, source));
       if (n.length >= 6) {
         // Compound parts: POWER-HOUSE (the model's own name scores high; a tag only on the answer).
-        for (const t of source === 'answer' ? [...inf.names, ...inf.tagWords] : inf.names) {
-          if (t.length < 4 || t === n || n.length - t.length < 3) continue;
-          const isName = inf.names.includes(t);
+        for (const { t, isName } of inf.partTerms) {
+          if ((!isName && source !== 'answer') || t === n || n.length - t.length < 3) continue;
           const at = n.startsWith(t) ? 0 : n.endsWith(t) ? n.length - t.length : -1;
-          if (at >= 0) perWord.push({ ...mk(isName ? 10 : 7, 'part', at, at + t.length), viaTag: !isName });
+          if (at >= 0) perWord.push({ ...link(e, isName ? 10 : 7, 'part', w, at, at + t.length, source), viaTag: !isName });
         }
       }
     }
     // Anim puns: SHAKE-SPEARe → the rest of the word puns on a model, which then shakes.
     for (const a of ANIM_PUNS) {
-      if (n.length - a.length < 3 || !n.startsWith(a)) continue;
+      if (w.pair || n.length - a.length < 3 || !n.startsWith(a)) continue;
       const rest = n.slice(a.length);
       const rk = phoneticKey(rest);
       for (const inf of all) {
@@ -499,13 +528,20 @@ function linksFor(ws: Word[], source: 'answer' | 'question'): Link[] {
     }
     out.push(...perWord);
   }
-  // Multi-word tags: "de gaulle" → radio, "tea party" → teacup (names, so specific).
+  // Multi-word tags: "de gaulle" → radio, "short time" → clock (names and idioms, so specific).
   for (const inf of all) {
     for (const t of inf.multi) {
       if (!phrase.includes(` ${t} `)) continue;
-      const firstWord = t.split(' ')[0];
-      const w = ws.find((x) => x.norm === firstWord) ?? ws.find(isContent);
-      if (w) out.push({ entry: inf.e, score: 11, kind: 'meaning', word: w, start: 0, end: w.norm.length, source });
+      const tw = t.split(' ');
+      const i = context.findIndex((_, k) => tw.every((p, j) => context[k + j]?.norm === p));
+      if (i < 0) continue;
+      const span = context.slice(i, i + tw.length);
+      if (!span.some((x) => ws.includes(x) && isContent(x))) continue;
+      const pw = makeWord(t, span.map((x) => x.raw).join(' '), span.some((x) => x.proper), span[0].capital);
+      pw.index = span[span.length - 1].index;
+      pw.pos = span[0].pos;
+      pw.bonus = Math.max(...span.map((x) => x.bonus));
+      out.push({ entry: inf.e, score: 11, kind: 'meaning', word: pw, start: 0, end: t.length, source });
     }
   }
   return out;
@@ -522,8 +558,8 @@ const isPun = (k: LinkKind) => k !== 'meaning';
 /** Best link per entry, with the tie-breakers (double links, Q+A links, avoid list, seeded jitter). */
 function rank(
   links: Link[],
-  rand: RandomSource,
-  avoid: Set<string>,
+  jitter: Map<string, number>,
+  avoid: Map<string, number>,
   last: string | undefined,
   other: Link[] = [],
   filter: (e: CatalogEntry) => boolean = () => true,
@@ -537,19 +573,22 @@ function rank(
   }
   const otherBest = new Map<string, number>();
   for (const l of other) otherBest.set(l.entry.id, Math.max(otherBest.get(l.entry.id) ?? 0, l.score));
-  // Seeded jitter drawn in catalog order so results do not depend on the link order.
-  const jitter = new Map(info().map((i) => [i.e.id, rand()]));
   const out: Candidate[] = [];
   for (const [id, ls] of byEntry) {
     const adj = (l: Link) => l.score + l.word.bonus + (l.word.proper ? 0.6 : 0) + 0.4 * (1 - l.word.pos);
     ls.sort((a, b) => adj(b) - adj(a) || a.word.index - b.word.index);
-    const best = ls[0];
+    let best = ls[0];
     let score = adj(best);
-    // Linked by sound AND meaning through the same word (BERlin → bear, the Berlin bear).
+    // Linked by sound AND meaning through the same word (BERlin → bear, the Berlin bear): the
+    // pun is what the caption shows.
     const same = ls.filter((l) => l.word === best.word && l.score >= 6);
-    if (same.some((l) => isPun(l.kind) && !l.viaTag) && same.some((l) => l.kind === 'meaning')) score += 0.8;
+    const pun = same.find((l) => isPun(l.kind) && !l.viaTag);
+    if (pun && same.some((l) => l.kind === 'meaning')) {
+      score += 0.8;
+      best = pun.score >= best.score ? pun : { ...pun, score: best.score };
+    }
     if ((otherBest.get(id) ?? 0) >= STRONG_LINK) score += 0.6; // linked to the other side too
-    if (avoid.has(id)) score -= 2;
+    score -= avoid.get(id) ?? 0;
     if (id === last) score -= 6;
     score += (jitter.get(id) ?? 0) * 0.05;
     out.push({ entry: best.entry, link: best, score });
@@ -609,7 +648,9 @@ function numberInfo(answer: string, question: string, aWords: Word[]): NumberInf
   for (let i = 0; i < toks.length; i++) {
     const m = MONTHS[toks[i]];
     if (!m) continue;
-    const day = [toks[i - 1], toks[i + 1]].find((t) => t !== undefined && /^\d{1,2}$/.test(t) && +t >= 1 && +t <= 31);
+    // "9 November", "November 9", "the 9th of November", "le 18 juin".
+    const back = toks[i - 1] === 'of' || toks[i - 1] === 'de' ? toks[i - 2] : toks[i - 1];
+    const day = [back, toks[i + 1]].find((t) => t !== undefined && /^\d{1,2}$/.test(t) && +t >= 1 && +t <= 31);
     const year = toks.slice(i + 1, i + 3).find((t) => /^\d{3,4}$/.test(t));
     if (day || year) {
       const w = aWords.find((x) => x.norm === toks[i]);
@@ -656,23 +697,26 @@ function naturalAnim(e: CatalogEntry, rand: RandomSource): AnimId {
   return lively.length ? pick(rand, lively.slice(0, 3)) : 'bounce';
 }
 
-/** "riding a KANGAROO", "under a blazing SUN", "hugging a GOLD COIN". */
-function joinPhrase(e: CatalogEntry, rand: RandomSource): string {
-  if (PROP_PHRASE[e.id]) return PROP_PHRASE[e.id];
+/** "riding a KANGAROO", "under a blazing SUN", "hugging a GOLD COIN" — never the same verb twice. */
+function joinPhrase(e: CatalogEntry, rand: RandomSource, usedVerbs: Set<string>): string {
   const { text } = nameOf(e);
   const a = article(text);
-  switch (e.category) {
-    case 'vehicle':
-      return `riding ${a} ${text}`;
-    case 'structure':
-      return pick(rand, [`on top of ${a} ${text}`, `bursting out of ${a} ${text}`]);
-    case 'animal':
-      return pick(rand, [`riding ${a} ${text}`, `chased by ${a} ${text}`]);
-    case 'person':
-      return pick(rand, [`carried by ${a} ${text}`, `with a tiny ${text}`]);
-    default:
-      return pick(rand, [`hugging ${a} ${text}`, `juggling ${a} ${text}`, `waving ${a} ${text}`]);
-  }
+  const options = PROP_PHRASE[e.id]
+    ? [PROP_PHRASE[e.id]]
+    : e.category === 'vehicle'
+      ? [`riding ${a} ${text}`, `chasing ${a} ${text}`]
+      : e.category === 'structure'
+        ? [`on top of ${a} ${text}`, `bursting out of ${a} ${text}`]
+        : e.category === 'animal'
+          ? [`riding ${a} ${text}`, `chased by ${a} ${text}`, `tickling ${a} ${text}`]
+          : e.category === 'person'
+            ? [`carried by ${a} ${text}`, `with a tiny ${text}`]
+            : [`hugging ${a} ${text}`, `juggling ${a} ${text}`, `waving ${a} ${text}`];
+  const verb = (o: string) => o.split(' ')[0];
+  const fresh = options.filter((o) => !usedVerbs.has(verb(o)));
+  const out = pick(rand, fresh.length ? fresh : options);
+  usedVerbs.add(verb(out));
+  return out;
 }
 
 function chooseTextModel(q: string[], ni: NumberInfo, rand: RandomSource): string {
@@ -725,6 +769,7 @@ interface PunCut {
 
 /** "POWER-HOUSE", "AVO-gadro", "dar-WIN", "SHAKE-SPEARe", or the whole word in CAPS. */
 function punDisplay(w: Word, cut: PunCut | null): string {
+  if (w.pair || w.norm.includes(' ')) return upper(w.raw);
   const src = fold(w.raw) === w.norm ? w.raw : w.norm;
   if (!cut || (cut.start === 0 && cut.end >= src.length && !cut.second)) return upper(src);
   const marks = new Set([0, src.length, cut.start, cut.end]);
@@ -753,7 +798,8 @@ function soundCut(l: Link): PunCut | null {
   if (l.kind === 'meaning' || l.kind === 'exact') return null;
   if (l.kind === 'anim') return { start: l.start, end: l.end, lead: l.start };
   if (l.start === 0 && l.end >= n.length) {
-    const inf = info().find((i) => i.e.id === l.entry.id)!;
+    info();
+    const inf = INFO_BY_ID.get(l.entry.id)!;
     const idKey = inf.idKey;
     let best = 0;
     for (const { s, k } of inf.sounds) {
@@ -775,7 +821,7 @@ function answerDisplay(answer: string, w: Word | undefined, display: string): st
 
 /** The question's proper-noun run containing `w` ("Mona Lisa", "World War I"), or `display` alone. */
 function questionPhrase(qWords: Word[], w: Word, display: string): string {
-  if (!w.proper) return display;
+  if (!w.proper || w.norm.includes(' ') || qWords[w.index] !== w) return display;
   let a = w.index;
   let b = w.index;
   while (a > 0 && qWords[a - 1].proper) a--;
@@ -818,6 +864,12 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
   const seedText = `${question}\u0000${answer}\u0000${opts.seed ?? ''}`;
   const rand = mulberry32(hashString(seedText));
   const avoid = new Set(opts.avoid ?? []);
+  // Reusing a model is penalised, less so the longer ago it was used (1.5 → 1 → 0.5).
+  const penalty = new Map<string, number>();
+  (opts.avoid ?? []).forEach((id, i, list) => {
+    const d = list.length - i;
+    penalty.set(id, Math.max(penalty.get(id) ?? 0, d <= 3 ? 1.5 : d <= 10 ? 1 : 0.5));
+  });
   const last = opts.avoid?.length ? opts.avoid[opts.avoid.length - 1] : undefined;
 
   const aAll = tokenize(answer);
@@ -830,29 +882,32 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
   const qWords = qAll.filter((w) => isContent(w) && !aNorms.has(w.norm));
   // A person's name ("Isaac Newton", "Leonardo da Vinci"): the surname is the key.
   const nameWords = aAll.filter((w) => !NAME_PARTICLES.has(w.norm));
-  if (nameWords.length >= 2 && nameWords.length <= 4 && nameWords.every((w) => w.capital && /[a-z]/.test(w.norm))) {
-    nameWords.forEach((w, i) => (w.bonus = i === nameWords.length - 1 ? 1.5 : -1));
-  }
+  const surname =
+    nameWords.length >= 2 && nameWords.length <= 4 && nameWords.every((w) => w.capital && /[a-z]/.test(w.norm)) ? nameWords[nameWords.length - 1] : undefined;
+  if (surname) nameWords.forEach((w) => (w.bonus = w === surname ? 1.5 : -1));
 
   const nonText = (e: CatalogEntry) => !e.text;
-  const aLinks = linksFor(aWords, 'answer');
+  const aLinks = linksFor(aWords, 'answer', aAll);
   for (const l of aLinks) if (qNorms.has(l.word.norm)) l.score -= 4; // the question already says it
-  const qLinks = linksFor(qWords, 'question');
+  const qLinks = linksFor(qWords, 'question', qAll);
   for (const l of qLinks) if (WEAK_Q.has(l.word.norm)) l.score -= 2.5;
 
-  const aRank = rank(aLinks, rand, avoid, last, qLinks, nonText);
-  const qRank = rank(qLinks, rand, avoid, last, aLinks, nonText);
+  // Seeded tie-break jitter, drawn in catalog order so results do not depend on the link order.
+  const jitter = new Map(info().map((i) => [i.e.id, rand()]));
+  const aRank = rank(aLinks, jitter, penalty, last, qLinks, nonText);
+  const qRank = rank(qLinks, jitter, penalty, last, aLinks, nonText);
 
   // ── Hero ──
   let heroC: Candidate | undefined;
   let heroSource: HeroSource;
-  const strongA = aRank.find((c) => c.link.score >= STRONG_LINK);
-  const strongQ = qRank.find((c) => c.link.score >= STRONG_LINK);
+  // The previous notion's hero is never the hero again (it may still appear as a prop).
+  const strongA = aRank.find((c) => c.link.score >= STRONG_LINK && c.entry.id !== last);
+  const strongQ = qRank.find((c) => goodQuestionLink(c.link) && c.entry.id !== last);
   if (strongA && !ni.pure) [heroC, heroSource] = [strongA, 'answer'];
   else if (strongQ) [heroC, heroSource] = [strongQ, 'question'];
   else if (strongA) [heroC, heroSource] = [strongA, 'answer'];
   else {
-    const weak = [...aRank, ...qRank].filter((c) => c.link.score >= 4.5).sort((a, b) => b.score - a.score)[0];
+    const weak = [...aRank, ...qRank].filter((c) => c.link.score >= 4.5 && c.entry.id !== last).sort((a, b) => b.score - a.score)[0];
     if (weak) [heroC, heroSource] = [weak, 'weak'];
     else heroSource = 'fallback';
   }
@@ -862,7 +917,15 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
 
   // Hero anim: the pun's anim (SHAKE-speare), else a movement the notion names, else a natural one.
   const wanted = [...aWords, ...qWords].map((w) => ANIM_WORDS[w.norm]).find((a) => a && hero.anims.includes(a));
-  const hAnim: AnimId = heroLink?.anim ?? wanted ?? naturalAnim(hero, rand);
+  // A number to show as copies (1914 → 4): the hero juggles them when it can (Avogadro's avocado).
+  let count = 0;
+  if (!ni.formula && (ni.nums.length || ni.date)) {
+    if (ni.date) count = ni.date.day >= 1 && ni.date.day <= 12 ? ni.date.day : 0;
+    else count = salientCount(ni.year ?? ni.nums[0]);
+    if (count < 2) count = 0;
+  }
+  const juggles = count > 0 && hero.anims.includes('juggle') ? 'juggle' : undefined;
+  const hAnim: AnimId = heroLink?.anim ?? wanted ?? juggles ?? naturalAnim(hero, rand);
   const heroActor: SceneActor = { model: hero.id, role: 'hero', anim: hAnim, scale: 1.2 };
   const heroCut = heroLink && heroSource !== 'weak' ? soundCut(heroLink) : null;
 
@@ -891,7 +954,7 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
           if (inf.names.includes(rest)) restLinks.push(mk(inf.e, 12, 'exact', 0, rest.length));
         }
       }
-      const best = rank(restLinks, rand, avoid, undefined)[0];
+      const best = rank(restLinks, jitter, penalty, undefined)[0];
       if (best && best.link.score >= STRONG_LINK) {
         const len = best.link.kind === 'sound' ? best.link.end : rest.length;
         part = { entry: best.entry, start: rs, end: rs + len };
@@ -902,25 +965,21 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
 
   // ── Question prop: binds the question to the answer (Kenya → KEY, Mona Lisa → MOON) ──
   let qProp: Candidate | undefined;
-  if (heroSource === 'answer' || heroSource === 'weak') {
-    qProp = qRank.find((c) => !used.has(c.entry.id) && goodQuestionLink(c.link));
+  if (heroSource !== 'question') {
+    // …but no pun on a question word the hero already stands for (GLOBE = planet ↛ PLANE-t biplane).
+    const heroQ = new Set(qLinks.filter((l) => l.entry.id === hero.id && l.score >= STRONG_LINK).map((l) => l.word.norm));
+    qProp = qRank.find((c) => !used.has(c.entry.id) && goodQuestionLink(c.link) && !(c.link.kind !== 'meaning' && heroQ.has(c.link.word.norm)));
     if (qProp) used.add(qProp.entry.id);
   }
 
   // ── Count actor ──
-  let count = 0;
-  if (!ni.formula && (ni.nums.length || ni.date)) {
-    if (ni.date) count = ni.date.day >= 1 && ni.date.day <= 12 ? ni.date.day : 0;
-    else count = salientCount(ni.year ?? ni.nums[0]);
-    if (count < 2) count = 0;
-  }
   let countActor: SceneActor | undefined;
   let countEntry: CatalogEntry | undefined;
   let countLink: Link | undefined;
   if (count) {
     // Prefer copies of something the notion is about (1914 → helmets, 1919 → doves), else a toy.
     const countable = (e: CatalogEntry) => !e.text && e.category !== 'structure' && !used.has(e.id) && (hAnim !== 'juggle' || e.anims.includes('juggle'));
-    const linked = rank([...qLinks, ...aLinks], rand, avoid, last, [], countable).find((c) => goodQuestionLink(c.link));
+    const linked = rank([...qLinks, ...aLinks], jitter, penalty, last, [], countable).find((c) => goodQuestionLink(c.link));
     countLink = linked?.link;
     const toys = COUNT_MODELS.filter((m) => !used.has(m) && (hAnim !== 'juggle' || entryOf(m).anims.includes('juggle')));
     countEntry = linked?.entry ?? entryOf(pickAvoiding(rand, toys.length ? toys : COUNT_MODELS.filter((m) => !used.has(m)), avoid, last));
@@ -948,8 +1007,10 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
 
   // ── Label ──
   const strongPun = heroSource === 'answer' && !!heroLink && heroLink.kind !== 'meaning';
-  const needLabel = ni.nums.length > 0 || ni.formula || !!ni.date || !strongPun;
-  const labelText = needLabel ? labelFor(answer, ni, keyWord) : '';
+  // A pun on a first name (VICTOR Hugo) still needs the surname written down.
+  const punOnFirstName = !!surname && !!heroLink && heroLink.word.norm !== surname.norm;
+  const needLabel = ni.nums.length > 0 || ni.formula || !!ni.date || !strongPun || punOnFirstName;
+  const labelText = needLabel ? labelFor(answer, ni, punOnFirstName ? surname : keyWord) : '';
   let labelEntry: CatalogEntry | undefined;
   let labelActor: SceneActor | undefined;
   if (labelText) {
@@ -1019,8 +1080,9 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
         return `beside a SIGN reading ${L}`;
     }
   };
-  const partPhrase = part ? joinPhrase(part.entry, rand) : '';
-  const qPhrase = qProp ? joinPhrase(qProp.entry, rand) : '';
+  const usedVerbs = new Set<string>();
+  const partPhrase = part ? joinPhrase(part.entry, rand, usedVerbs) : '';
+  const qPhrase = qProp ? joinPhrase(qProp.entry, rand, usedVerbs) : '';
   const partActor: SceneActor | undefined = part ? { model: part.entry.id, role: 'prop', anim: naturalAnim(part.entry, rand) } : undefined;
   const qActor: SceneActor | undefined = qProp ? { model: qProp.entry.id, role: 'prop', anim: naturalAnim(qProp.entry, rand) } : undefined;
   const numeric = ni.nums.length > 0 || ni.formula || !!ni.date;
