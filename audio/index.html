@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loci Sound Bench</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --bg: #1f150e; --panel: #2b1e14; --panel2: #36261a; --line: #4a3524;
+        --text: #f6e7c8; --muted: #c9b08a; --gold: #f2b24a; --gold2: #ffd98a; --ink: #1a120b;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+      main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+      h1 { font: 600 28px Georgia, serif; margin: 0 0 4px; color: var(--gold2); }
+      h2 { font: 600 18px Georgia, serif; margin: 28px 0 10px; color: var(--gold2); }
+      p.sub { margin: 0 0 16px; color: var(--muted); }
+      input[type=range] { accent-color: var(--gold); }
+      button { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; touch-action: manipulation; }
+      button:hover { border-color: var(--gold); }
+      button:active { transform: translateY(1px); }
+      button.primary { background: var(--gold); color: var(--ink); border: 0; font-weight: 700; padding: 16px 28px; border-radius: 999px; font-size: 18px; }
+      button.on { background: var(--gold); color: var(--ink); }
+      .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+      .bar label { display: flex; gap: 8px; align-items: center; color: var(--muted); }
+      #status { font: 12px ui-monospace, monospace; color: var(--muted); }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+      .cue { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 4px; min-height: 76px; }
+      .cue b { color: var(--gold2); }
+      .cue small { color: var(--muted); font-size: 12px; }
+      .obj { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+      .obj .h { display: flex; justify-content: space-between; color: var(--gold2); font-weight: 600; }
+      .obj small { color: var(--muted); display: block; margin: 2px 0 8px; font-size: 12px; }
+      .obj .row { display: flex; gap: 6px; }
+      .obj .row button { flex: 1; padding: 8px 4px; font-size: 13px; }
+      .flame { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .flame input { flex: 1 1 220px; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); }
+      select { font: inherit; padding: 10px; border-radius: 10px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+      #syl { display: flex; gap: 6px; flex-wrap: wrap; min-height: 34px; margin-top: 10px; }
+      #syl span { padding: 4px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font: 12px ui-monospace, monospace; transition: background .08s; }
+      #syl span.lit { background: var(--gold); color: var(--ink); }
+      .spatial { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+      canvas { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; touch-action: none; max-width: 100%; }
+      .hint { color: var(--muted); font-size: 13px; max-width: 420px; }
+      #gate { position: fixed; inset: 0; background: #1f150ee8; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; z-index: 10; text-align: center; padding: 16px; }
+      #gate.hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="gate">
+      <h1>Loci sound bench</h1>
+      <p class="sub">All audio is synthesised in code. Headphones recommended to hear the spatial (HRTF) cues.</p>
+      <button class="primary" id="unlock">Tap to start audio</button>
+    </div>
+    <main id="app"></main>
+    <script type="module" src="/src/audio/demo.ts"></script>
+  </body>
+</html>

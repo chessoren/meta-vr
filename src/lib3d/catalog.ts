@@ -17,12 +17,12 @@ export function getModel(id: string): ModelSpec | undefined {
 
 /** Required ids (the contract shared with palaces, the AI prompt and the offline composer). */
 export const REQUIRED_IDS = {
-  animals: ['kangaroo', 'elephant', 'owl', 'cat', 'dog', 'fish', 'dove', 'eagle', 'bear', 'lion', 'rooster', 'frog', 'snail', 'bee', 'penguin', 'horse'],
+  animals: ['kangaroo', 'elephant', 'owl', 'cat', 'dog', 'fish', 'dove', 'eagle', 'bear', 'lion', 'rooster', 'frog', 'snail', 'bee', 'penguin', 'horse', 'turkey', 'otter', 'sheep'],
   people: ['soldier', 'king', 'sailor', 'pilot', 'scientist', 'knight'],
   food: ['avocado', 'apple', 'banana', 'cheese', 'cake', 'teacup', 'pizza'],
   nature: ['tree', 'mountain', 'sun', 'moon', 'star', 'cloud', 'lightning', 'snowflake', 'fire', 'wave'],
   science: ['globe', 'atom', 'flask', 'telescope', 'magnet', 'lightbulb'],
-  objects: ['book', 'clock', 'bell', 'crown', 'sword', 'shield', 'key', 'coin', 'trophy', 'candle', 'umbrella', 'tophat', 'ball', 'dice', 'anchor', 'gear', 'hammer', 'envelope', 'telephone', 'radio', 'medal', 'poppy', 'helmet', 'cannon', 'scroll', 'flag', 'sign', 'plaque'],
+  objects: ['book', 'clock', 'bell', 'crown', 'sword', 'shield', 'key', 'coin', 'trophy', 'candle', 'umbrella', 'tophat', 'ball', 'dice', 'anchor', 'gear', 'hammer', 'envelope', 'telephone', 'radio', 'medal', 'poppy', 'helmet', 'cannon', 'scroll', 'flag', 'sign', 'plaque', 'can', 'boot'],
   vehicles: ['tank', 'biplane', 'zeppelin', 'ship', 'submarine', 'train', 'car', 'rocket', 'balloon'],
   structures: ['castle', 'tower', 'pyramid', 'bridge', 'brickwall', 'house', 'tent'],
 } as const;

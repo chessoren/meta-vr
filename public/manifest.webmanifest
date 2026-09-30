@@ -1,0 +1,20 @@
+{
+  "name": "Loci",
+  "short_name": "Loci",
+  "description": "Your room remembers. A mixed-reality memory palace for Meta Quest and Meta VR Glasses.",
+  "id": "/app/",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "theme_color": "#1a120b",
+  "background_color": "#140d08",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

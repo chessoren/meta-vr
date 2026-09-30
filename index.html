@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Loci — Your room remembers</title>
+    <meta name="description" content="Loci turns your bedroom into a memory palace. Import your course tonight; tomorrow, close your eyes — the answers are where you left them. Mixed reality for Meta Quest and Meta VR Glasses." />
+    <meta name="theme-color" content="#140d08" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <meta property="og:title" content="Loci — Your room remembers" />
+    <meta property="og:description" content="A mixed-reality memory palace. Your course, anchored on the real objects of your room." />
+    <meta property="og:type" content="website" />
+    <!-- MEDIA PLACEHOLDER: add <meta property="og:image" content="/media/og.jpg"> (1200×630, real headset capture) once captured. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>document.documentElement.classList.add('js');</script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <!-- Shared SVG definitions (gradients + the flame symbol) -->
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="g-flame-outer" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#d9582a" />
+          <stop offset="0.55" stop-color="#ef8a3a" />
+          <stop offset="1" stop-color="#f7c25a" />
+        </linearGradient>
+        <linearGradient id="g-flame-inner" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#fff8e6" />
+          <stop offset="1" stop-color="#f6d354" />
+        </linearGradient>
+        <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fbe3a0" />
+          <stop offset="0.5" stop-color="#e9b949" />
+          <stop offset="1" stop-color="#a8741f" />
+        </linearGradient>
+        <radialGradient id="g-halo">
+          <stop offset="0" stop-color="#f6c65e" stop-opacity="0.75" />
+          <stop offset="0.4" stop-color="#f2b24a" stop-opacity="0.25" />
+          <stop offset="1" stop-color="#f2b24a" stop-opacity="0" />
+        </radialGradient>
+        <symbol id="i-flame" viewBox="0 0 100 140">
+          <path class="f-outer" fill="url(#g-flame-outer)" d="M54 4C60 26 88 46 88 84c0 28-18 50-38 50-22 0-38-18-38-44 0-20 10-34 20-44 3 12 9 20 16 24-5-24-2-48 6-66z" />
+          <path class="f-inner" fill="url(#g-flame-inner)" d="M52 62c4 14 18 24 18 42 0 14-8 24-20 24s-19-9-19-21c0-11 6-18 10-23 2 6 5 10 8 11-2-12 0-23 3-33z" />
+        </symbol>
+        <symbol id="i-arch" viewBox="118 136 276 290">
+          <path d="M160 408V252a96 96 0 0 1 192 0v156" fill="none" stroke="url(#g-gold)" stroke-width="24" stroke-linecap="round" />
+          <path d="M136 408h240" stroke="#c9973d" stroke-width="24" stroke-linecap="round" />
+          <path fill="url(#g-flame-outer)" d="M262 206c10 30 46 58 46 106 0 34-23 60-52 60s-52-24-52-58c0-26 14-44 26-58 4 16 12 26 22 30-6-30 0-58 10-80z" />
+          <path fill="url(#g-flame-inner)" d="M257 272c6 18 25 32 25 56 0 18-11 30-26 30s-25-12-25-28c0-14 8-24 14-30 2 8 6 12 10 14-2-16 0-30 2-42z" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="nav" id="top">
+      <div class="wrap nav-inner">
+        <a class="brand" href="/" aria-label="Loci — home">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-arch" /></svg>
+          <span>Loci</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections">
+          <a href="#method">The method</a>
+          <a href="#how">How it works</a>
+          <a href="#hands">Hands &amp; glasses</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <a class="btn btn-gold btn-sm" href="/app/">Open on Quest</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ═════════════════════════════ HERO ═════════════════════════════ -->
+      <section class="hero" aria-labelledby="hero-title">
+        <canvas class="embers" aria-hidden="true"></canvas>
+        <div class="hero-vignette" aria-hidden="true"></div>
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="spark" aria-hidden="true"></span>A mixed-reality memory palace for Meta Quest</p>
+            <h1 id="hero-title">Your room <em>remembers.</em></h1>
+            <p class="lede">Loci turns your bedroom into a memory palace. Import your course tonight. Tomorrow, close your eyes&nbsp;— the answers are where you left them.</p>
+            <div class="ctas">
+              <a class="btn btn-gold" href="/app/">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="btn-ic"><path d="M3 9.5c0-1.9 1.6-3.5 3.5-3.5h11c1.9 0 3.5 1.6 3.5 3.5v4c0 1.9-1.6 3.5-3.5 3.5h-2.2c-.9 0-1.7-.5-2.1-1.3l-.5-1c-.3-.6-1.1-.6-1.4 0l-.5 1c-.4.8-1.2 1.3-2.1 1.3H6.5C4.6 17 3 15.4 3 13.5z" fill="currentColor" /></svg>
+                Open on Quest
+              </a>
+              <a class="btn btn-ghost" href="/import/">Import a course <span aria-hidden="true">→</span></a>
+            </div>
+            <p class="hint">On your headset, <span class="host-line">open this page in Meta Quest Browser</span>. No install, no account, no controllers.</p>
+          </div>
+
+          <div class="hero-art">
+            <!-- MEDIA PLACEHOLDER (slot "hero"): /media/hero-loop.mp4 + /media/hero-poster.jpg
+                 Real in-headset mixed-reality capture, 4:5, ~8 s seamless loop. Enable in src/landing/media.ts.
+                 Until then the illustrated room below is shown. -->
+            <figure class="arch media" data-slot="hero">
+              <div class="arch-inner">
+                <svg class="room" viewBox="0 0 560 700" role="img" aria-labelledby="room-desc">
+                  <title id="room-desc">Illustration: a bedroom on a winter night seen through Loci. A small flame floats in the air, a golden halo surrounds the desk lamp while a question and three answer bubbles hover in front of it, an avocado juggles on a pile of books, a crystal glows on the bookshelf and a golden star sits on the window sill.</title>
+                  <defs>
+                    <clipPath id="c-arch"><path d="M0 700V280A280 280 0 0 1 560 280V700Z" /></clipPath>
+                    <clipPath id="c-win"><rect x="352" y="170" width="150" height="200" /></clipPath>
+                    <linearGradient id="g-wall" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#150d07" />
+                      <stop offset="0.7" stop-color="#2f1e11" />
+                      <stop offset="1" stop-color="#1c120a" />
+                    </linearGradient>
+                    <linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#0b1220" />
+                      <stop offset="1" stop-color="#26354f" />
+                    </linearGradient>
+                    <linearGradient id="g-floor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#24170d" />
+                      <stop offset="1" stop-color="#0d0805" />
+                    </linearGradient>
+                    <linearGradient id="g-cone" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#ffdc8f" stop-opacity="0.55" />
+                      <stop offset="1" stop-color="#ffdc8f" stop-opacity="0" />
+                    </linearGradient>
+                    <radialGradient id="g-lamplight" cx="0.5" cy="0.62" r="0.55">
+                      <stop offset="0" stop-color="#f2a94a" stop-opacity="0.42" />
+                      <stop offset="0.5" stop-color="#c26a2a" stop-opacity="0.12" />
+                      <stop offset="1" stop-color="#c26a2a" stop-opacity="0" />
+                    </radialGradient>
+                    <radialGradient id="g-moon">
+                      <stop offset="0" stop-color="#dfe8ff" stop-opacity="0.35" />
+                      <stop offset="1" stop-color="#dfe8ff" stop-opacity="0" />
+                    </radialGradient>
+                    <linearGradient id="g-curtain" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stop-color="#3d1614" />
+                      <stop offset="0.5" stop-color="#6b2a22" />
+                      <stop offset="1" stop-color="#3d1614" />
+                    </linearGradient>
+                  </defs>
+                  <g clip-path="url(#c-arch)">
+                    <rect width="560" height="700" fill="url(#g-wall)" />
+                    <!-- wall panelling -->
+                    <path d="M0 540H560" stroke="#3f2917" stroke-width="2" opacity="0.7" />
+                    <!-- the flame's warm light on the upper wall -->
+                    <ellipse cx="258" cy="96" rx="170" ry="120" fill="url(#g-halo)" opacity="0.28" />
+
+                    <!-- window -->
+                    <rect x="342" y="160" width="170" height="220" rx="4" fill="#2a1a0f" />
+                    <rect x="352" y="170" width="150" height="200" fill="url(#g-sky)" />
+                    <circle cx="468" cy="210" r="46" fill="url(#g-moon)" />
+                    <circle cx="468" cy="210" r="14" fill="#efe6cf" />
+                    <path d="M352 352c26-16 52-18 76-8s50 8 74-6v32H352z" fill="#dfe6f1" opacity="0.18" />
+                    <g clip-path="url(#c-win)" class="snow" fill="#f5f1e6">
+                      <circle cx="362" cy="160" r="1.8" style="--d:0s;--t:7s" />
+                      <circle cx="378" cy="160" r="1.2" style="--d:-2s;--t:9s" />
+                      <circle cx="392" cy="160" r="2.2" style="--d:-4s;--t:8s" />
+                      <circle cx="408" cy="160" r="1.4" style="--d:-1s;--t:10s" />
+                      <circle cx="420" cy="160" r="1.8" style="--d:-6s;--t:7.5s" />
+                      <circle cx="436" cy="160" r="1.2" style="--d:-3s;--t:9.5s" />
+                      <circle cx="446" cy="160" r="2" style="--d:-5s;--t:8.5s" />
+                      <circle cx="462" cy="160" r="1.4" style="--d:-7s;--t:11s" />
+                      <circle cx="476" cy="160" r="1.8" style="--d:-2.5s;--t:8s" />
+                      <circle cx="490" cy="160" r="1.2" style="--d:-4.5s;--t:9s" />
+                      <circle cx="370" cy="160" r="1" style="--d:-8s;--t:12s" />
+                      <circle cx="454" cy="160" r="1" style="--d:-9s;--t:12s" />
+                    </g>
+                    <rect x="425" y="170" width="4" height="200" fill="#2a1a0f" />
+                    <rect x="352" y="268" width="150" height="4" fill="#2a1a0f" />
+                    <rect x="330" y="378" width="194" height="12" rx="2" fill="#5e3b22" />
+                    <rect x="330" y="378" width="194" height="3" rx="1.5" fill="#8a5a36" />
+                    <!-- curtains -->
+                    <path d="M322 146c10 60-6 140 4 244h20c-12-90 2-180-6-244z" fill="url(#g-curtain)" />
+                    <path d="M532 146c-10 60 6 140-4 244h-20c12-90-2-180 6-244z" fill="url(#g-curtain)" />
+                    <rect x="312" y="140" width="232" height="8" rx="4" fill="#8a5a36" />
+
+                    <!-- bookshelf -->
+                    <rect x="34" y="150" width="178" height="392" fill="#2b1a0e" />
+                    <rect x="46" y="162" width="154" height="380" fill="#130b06" />
+                    <g fill="#4a2f1b">
+                      <rect x="40" y="248" width="166" height="8" />
+                      <rect x="40" y="340" width="166" height="8" />
+                      <rect x="40" y="432" width="166" height="8" />
+                    </g>
+                    <!-- books: row 1 -->
+                    <g>
+                      <rect x="50" y="186" width="14" height="62" fill="#7a2e26" />
+                      <rect x="64" y="194" width="10" height="54" fill="#a8741f" />
+                      <rect x="74" y="182" width="16" height="66" fill="#2f4a3a" />
+                      <rect x="90" y="198" width="12" height="50" fill="#5b3a64" />
+                      <rect x="102" y="188" width="14" height="60" fill="#8a5a36" />
+                      <path d="M120 248l12-58 11 2-12 56z" fill="#3f5875" />
+                      <rect x="160" y="200" width="12" height="48" fill="#6b2a22" />
+                      <rect x="172" y="192" width="14" height="56" fill="#c9973d" />
+                    </g>
+                    <!-- books: row 2 -->
+                    <g>
+                      <rect x="50" y="286" width="12" height="54" fill="#3f5875" />
+                      <rect x="62" y="280" width="16" height="60" fill="#6b2a22" />
+                      <rect x="78" y="290" width="10" height="50" fill="#c9973d" />
+                      <rect x="150" y="278" width="14" height="62" fill="#2f4a3a" />
+                      <rect x="164" y="288" width="12" height="52" fill="#7a2e26" />
+                      <rect x="176" y="284" width="16" height="56" fill="#5b3a64" />
+                    </g>
+                    <!-- books: row 3 (lying) -->
+                    <g>
+                      <rect x="54" y="418" width="70" height="14" fill="#6b2a22" />
+                      <rect x="58" y="404" width="62" height="14" fill="#2f4a3a" />
+                      <rect x="140" y="372" width="12" height="60" fill="#a8741f" />
+                      <rect x="152" y="380" width="14" height="52" fill="#3f5875" />
+                      <rect x="166" y="376" width="12" height="56" fill="#7a2e26" />
+                    </g>
+                    <!-- books: row 4 -->
+                    <g>
+                      <rect x="50" y="470" width="14" height="62" fill="#5b3a64" />
+                      <rect x="64" y="478" width="12" height="54" fill="#8a5a36" />
+                      <rect x="76" y="474" width="16" height="58" fill="#2f4a3a" />
+                      <rect x="92" y="482" width="10" height="50" fill="#c9973d" />
+                      <rect x="102" y="472" width="14" height="60" fill="#7a2e26" />
+                      <rect x="116" y="480" width="12" height="52" fill="#3f5875" />
+                    </g>
+
+                    <!-- SOLID tier: crystal on shelf 2 -->
+                    <g class="tier-crystal">
+                      <ellipse cx="116" cy="316" rx="30" ry="26" fill="url(#g-halo)" opacity="0.7" />
+                      <path d="M116 296l12 14-4 26h-16l-4-26z" fill="#9fd4d0" />
+                      <path d="M116 296l12 14-12 4-12-4z" fill="#dff6f2" />
+                      <path d="M116 314l8 22h-8z" fill="#5fa8a8" />
+                    </g>
+                    <!-- SOLID tier: sprouting plant on top of shelf -->
+                    <g class="tier-plant">
+                      <path d="M170 150h24l-3 -18h-18z" fill="#8a5a36" transform="translate(0 0)" />
+                      <path d="M182 132c-2-12-12-18-20-16 2 10 10 16 20 16z" fill="#6fae5a" />
+                      <path d="M182 132c2-16 12-22 22-20-2 12-12 20-22 20z" fill="#8cc466" />
+                      <path d="M182 132v-8" stroke="#5f9a4a" stroke-width="2" />
+                    </g>
+
+                    <!-- floor + rug -->
+                    <rect y="590" width="560" height="110" fill="url(#g-floor)" />
+                    <ellipse cx="300" cy="660" rx="230" ry="36" fill="#4a1f1a" opacity="0.55" />
+                    <ellipse cx="300" cy="660" rx="200" ry="28" fill="none" stroke="#a8741f" stroke-opacity="0.35" stroke-width="2" />
+
+                    <!-- desk -->
+                    <rect x="222" y="512" width="12" height="90" fill="#3b2415" />
+                    <rect x="508" y="512" width="12" height="90" fill="#3b2415" />
+                    <rect x="400" y="518" width="112" height="46" fill="#4a2f1b" />
+                    <rect x="446" y="536" width="20" height="4" rx="2" fill="#c9973d" />
+                    <rect x="212" y="500" width="320" height="16" rx="2" fill="#5e3b22" />
+                    <rect x="212" y="500" width="320" height="3" rx="1.5" fill="#b98352" />
+
+                    <!-- warm lamp light on wall -->
+                    <ellipse cx="300" cy="440" rx="260" ry="220" fill="url(#g-lamplight)" />
+                    <!-- light cone -->
+                    <path d="M284 404l-44 96h108l-26-96z" fill="url(#g-cone)" opacity="0.6" />
+
+                    <!-- lamp -->
+                    <g class="lamp">
+                      <ellipse cx="258" cy="498" rx="26" ry="6" fill="#a8741f" />
+                      <path d="M258 494l-16-60 58-38" stroke="#c9973d" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                      <circle cx="242" cy="434" r="5" fill="#e9b949" />
+                      <path d="M286 382l32-18 22 34-44 12z" fill="#c9973d" />
+                      <path d="M296 410l44-12" stroke="#fbe3a0" stroke-width="3" stroke-linecap="round" />
+                      <ellipse cx="316" cy="406" rx="10" ry="5" fill="#fff4dc" transform="rotate(-16 316 406)" />
+                    </g>
+                    <!-- halo around the lamp (active object) -->
+                    <ellipse class="lamp-halo" cx="296" cy="440" rx="82" ry="76" fill="none" stroke="#f6c65e" stroke-width="2" stroke-opacity="0.8" />
+
+                    <!-- book stack + avocado scene -->
+                    <g>
+                      <rect x="410" y="484" width="84" height="16" rx="2" fill="#2f4a3a" />
+                      <rect x="416" y="470" width="74" height="14" rx="2" fill="#7a2e26" />
+                      <rect x="412" y="458" width="80" height="12" rx="2" fill="#a8741f" />
+                    </g>
+                    <g class="avocado">
+                      <ellipse cx="452" cy="458" rx="34" ry="8" fill="url(#g-halo)" />
+                      <path d="M452 390c-16 0-24 18-26 34-2 18 10 34 26 34s28-16 26-34c-2-16-10-34-26-34z" fill="#3f7a4a" />
+                      <path d="M452 400c-11 0-17 13-18 25-1 13 7 25 18 25s19-12 18-25c-1-12-7-25-18-25z" fill="#c8df82" />
+                      <circle cx="452" cy="430" r="10" fill="#8a5a36" />
+                      <circle cx="448" cy="426" r="3" fill="#b98352" />
+                      <g class="eyes" fill="#1e1e22"><circle cx="445" cy="410" r="2" /><circle cx="459" cy="410" r="2" /><path d="M447 417q5 4 10 0" stroke="#1e1e22" stroke-width="1.6" fill="none" stroke-linecap="round" /></g>
+                      <path d="M428 420l-12-14M476 420l12-14" stroke="#3f7a4a" stroke-width="4" stroke-linecap="round" />
+                      <g class="balls">
+                        <circle class="ball b1" cx="452" cy="372" r="5" fill="#d9483b" />
+                        <circle class="ball b2" cx="452" cy="372" r="5" fill="#3f74c4" />
+                        <circle class="ball b3" cx="452" cy="372" r="5" fill="#f6d354" />
+                      </g>
+                    </g>
+                  </g>
+                  <path d="M1.5 700V280A278.5 278.5 0 0 1 558.5 280V700" fill="none" stroke="#e9b949" stroke-opacity="0.55" stroke-width="3" />
+                </svg>
+
+                <!-- In-headset UI overlays (HTML so type stays crisp) -->
+                <div class="ov ov-flame" aria-hidden="true">
+                  <div class="flame-glow"></div>
+                  <svg class="flame" viewBox="0 0 100 140"><use href="#i-flame" /></svg>
+                </div>
+                <div class="ov ov-question" aria-hidden="true">
+                  <p class="q-card"><span class="q-kicker">The lamp asks</span>Capital of Australia?</p>
+                  <div class="q-bubbles"><span>Sydney</span><span class="gazed">Canberra</span><span>Melbourne</span></div>
+                </div>
+                <div class="ov ov-tag ov-tag-avo" aria-hidden="true">6.02 × 10<sup>23</sup></div>
+                <div class="ov ov-tag ov-tag-crystal" aria-hidden="true">Solid</div>
+              </div>
+            </figure>
+            <p class="art-cap">Illustrated. The real thing happens in your room.</p>
+          </div>
+        </div>
+
+        <ul class="wrap hero-strip" aria-label="Highlights">
+          <li><b>Hands only</b><span>No controllers, ever</span></li>
+          <li><b>Seated</b><span>Everything within 60&nbsp;cm</span></li>
+          <li><b>5 minutes</b><span>To your first palace</span></li>
+          <li><b>Works offline</b><span>AI helps, never required</span></li>
+        </ul>
+      </section>
+
+      <!-- ═════════════════════════════ PROBLEM ═════════════════════════════ -->
+      <section class="sec problem" id="problem" aria-labelledby="problem-title">
+        <div class="wrap split">
+          <div class="reveal">
+            <p class="eyebrow">The problem</p>
+            <h2 id="problem-title">Re-reading feels like studying. <span class="dim">It mostly isn’t.</span></h2>
+            <p class="body">It’s what nearly everyone does the night before an exam: highlight, re-read, re-read again. It feels productive because the page starts to look familiar. But familiar isn’t the same as remembered — and the exam asks you to <em>retrieve</em>, not to recognise.</p>
+            <p class="body">In a large 2013 review of ten popular study techniques, psychologists rated re-reading and highlighting <strong>low utility</strong>. The two that earned the top rating — testing yourself and spacing your reviews over time — are exactly the ones students skip, because they’re effortful and hard to schedule.</p>
+            <ol class="facts">
+              <li><b>1885</b><span>Hermann Ebbinghaus charts the forgetting curve: what we learn fades fast unless we come back to it.</span></li>
+              <li><b>2006</b><span>Roediger &amp; Karpicke: students who tested themselves remembered more a week later than students who re-studied.</span></li>
+              <li><b>2013</b><span>Dunlosky et al.: practice testing and distributed practice rated highest; re-reading, low.</span></li>
+            </ol>
+          </div>
+          <figure class="chart reveal" aria-labelledby="chart-cap">
+            <div class="chart-head">
+              <p class="chart-title">What you still remember, day by day</p>
+              <ul class="legend" aria-hidden="true">
+                <li><i class="sw sw-cool"></i>Re-read once</li>
+                <li><i class="sw sw-gold"></i>Recalled at spaced intervals</li>
+              </ul>
+            </div>
+            <div class="chart-plot">
+              <svg id="curve" viewBox="0 0 560 330" role="img" aria-label="Illustrative forgetting curves. After a single re-read, retention falls steeply within the first days and levels off low. With active recall at days 1, 3, 7 and 14, each review restores retention and the decay after it gets slower, so retention stays high after three weeks."></svg>
+              <div class="chart-tip" hidden></div>
+            </div>
+            <figcaption id="chart-cap">Illustrative model after Ebbinghaus (1885) and the spacing-effect literature — the shape, not a measurement. Loci’s own results will come from our study.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ THE METHOD ═════════════════════════════ -->
+      <section class="sec method" id="method" aria-labelledby="method-title">
+        <div class="wrap">
+          <div class="method-grid">
+            <div class="reveal">
+              <p class="eyebrow">The method of loci</p>
+              <h2 id="method-title">A 2,500‑year‑old technique. <span class="dim">Finally effortless.</span></h2>
+              <p class="body drop">Around 500&nbsp;BC, the poet Simonides of Ceos stepped out of a banquet hall moments before its roof collapsed. The guests were beyond recognition — yet Simonides could name every one of them, by remembering <em>where each had been sitting</em>. That is the memory palace: bind each thing you want to remember to a place you know by heart, then walk the route in your mind.</p>
+              <p class="body">It is still the core technique of memory champions. In a brain-imaging study of world-class memorisers, nine out of ten said they used it. And ordinary people who practised it for six weeks more than doubled how many words they could recall — with much of the gain still there four months later.</p>
+              <p class="body">So why doesn’t everyone use it? Because inventing a vivid image for every fact and memorising a route for every chapter is exhausting. <strong>Loci does that part for you.</strong></p>
+            </div>
+            <blockquote class="quote reveal">
+              <svg class="quote-flame" aria-hidden="true" viewBox="0 0 100 140"><use href="#i-flame" /></svg>
+              <p>“The order of the places will preserve the order of the things.”</p>
+              <footer>Cicero, <cite>De Oratore</cite>, 55&nbsp;BC</footer>
+            </blockquote>
+          </div>
+
+          <ol class="timeline reveal" aria-label="A short history of the memory palace">
+            <li><b>c. 500 BC</b><span>Simonides of Ceos and the collapsed banquet hall</span></li>
+            <li><b>55 BC</b><span>Cicero teaches the “places” to Roman orators</span></li>
+            <li><b>1596</b><span>Matteo Ricci builds memory palaces to teach in China</span></li>
+            <li><b>1991</b><span>The first World Memory Championship</span></li>
+            <li class="now"><b>Tonight</b><span>Your bedroom, with the images built for you</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ HOW IT WORKS ═════════════════════════════ -->
+      <section class="sec how" id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <header class="sec-head reveal">
+            <p class="eyebrow">How it works</p>
+            <h2 id="how-title">Three steps tonight. <span class="dim">The answers, tomorrow.</span></h2>
+          </header>
+          <ol class="steps">
+            <li class="step reveal">
+              <!-- MEDIA PLACEHOLDER (slot "import"): /media/step-import.jpg — phone import + headset QR, 4:3 -->
+              <div class="step-media media" data-slot="import">
+                <div class="fb fb-import" aria-hidden="true">
+                  <div class="phone">
+                    <div class="phone-notch"></div>
+                    <p class="phone-title">History · WWI &amp; WWII</p>
+                    <ul class="phone-list">
+                      <li><b>1914</b> Assassination in Sarajevo</li>
+                      <li><b>1916</b> Battle of the Somme</li>
+                      <li><b>1918</b> Armistice, 11 November</li>
+                      <li class="off"><b>1919</b> Treaty of Versailles</li>
+                    </ul>
+                    <p class="phone-btn">Send 20 notions to my room</p>
+                  </div>
+                  <div class="qr-card">
+                    <div class="qr"></div>
+                    <p class="qr-code">KXQT</p>
+                  </div>
+                </div>
+              </div>
+              <div class="step-body">
+                <p class="step-n">I</p>
+                <h3>Import</h3>
+                <p>Snap your notes, drop a PDF or paste text on your phone. Scan the QR code floating in your headset — or type its four letters. Loci splits your course into up to 20 atomic notions, each one question and one short answer. You keep, fix or delete every one. <strong>You never type in the headset.</strong></p>
+              </div>
+            </li>
+            <li class="step reveal">
+              <!-- MEDIA PLACEHOLDER (slot "place"): /media/step-place.jpg — pinching a scene onto a real lamp, 4:3 -->
+              <div class="step-media media" data-slot="place">
+                <div class="fb fb-place" aria-hidden="true">
+                  <svg viewBox="0 0 400 300">
+                    <ellipse cx="220" cy="160" rx="120" ry="110" fill="url(#g-halo)" opacity="0.55" />
+                    <path d="M150 262h140" stroke="#5e3b22" stroke-width="10" stroke-linecap="round" />
+                    <ellipse cx="190" cy="254" rx="30" ry="7" fill="#a8741f" />
+                    <path d="M190 250l-18-70 66-44" stroke="#c9973d" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="172" cy="180" r="6" fill="#e9b949" />
+                    <path d="M222 124l36-20 26 38-50 14z" fill="#c9973d" />
+                    <path d="M234 156l50-14" stroke="#fbe3a0" stroke-width="3" stroke-linecap="round" />
+                    <rect class="drop-box" x="232" y="28" width="88" height="88" rx="10" fill="none" stroke="#f6c65e" stroke-width="2" stroke-dasharray="6 6" />
+                    <g transform="translate(238 32) scale(1.3)">
+                      <g class="roo">
+                        <path d="M42 44c6 4 12 8 17 14" stroke="#b25a2e" stroke-width="5" stroke-linecap="round" fill="none" />
+                        <ellipse cx="34" cy="36" rx="11" ry="16" transform="rotate(-18 34 36)" fill="#c46a3a" />
+                        <ellipse cx="31" cy="39" rx="5" ry="10" transform="rotate(-18 31 39)" fill="#e6a878" />
+                        <ellipse cx="23" cy="15" rx="7" ry="5.5" transform="rotate(-15 23 15)" fill="#c46a3a" />
+                        <ellipse cx="26" cy="7" rx="2" ry="5.5" transform="rotate(8 26 7)" fill="#b25a2e" />
+                        <ellipse cx="30" cy="8" rx="2" ry="5.5" transform="rotate(26 30 8)" fill="#b25a2e" />
+                        <circle cx="20" cy="14" r="1.4" fill="#1e1e22" />
+                        <path d="M27 30l-6 5" stroke="#b25a2e" stroke-width="3" stroke-linecap="round" />
+                        <path d="M35 51l-13 6" stroke="#b25a2e" stroke-width="5" stroke-linecap="round" />
+                      </g>
+                    </g>
+                    <g class="hand" stroke-linecap="round">
+                      <path d="M366 222l40 52" stroke="#d9bf95" stroke-width="34" />
+                      <ellipse cx="350" cy="206" rx="27" ry="21" transform="rotate(-38 350 206)" fill="#e8d2ab" />
+                      <path d="M342 190l-36-34" stroke="#e8d2ab" stroke-width="12" />
+                      <path d="M332 212l-26-50" stroke="#dcc39c" stroke-width="12" />
+                      <path d="M352 184l-22-26M362 190l-18-22" stroke="#dcc39c" stroke-width="10" opacity=".9" />
+                    </g>
+                    <circle cx="304" cy="156" r="6" fill="#fff4dc" class="pinch-dot" /><circle cx="304" cy="156" r="14" fill="url(#g-halo)" />
+                  </svg>
+                  <p class="fb-cap">“Canberra” → a kangaroo, bouncing on your lamp</p>
+                </div>
+              </div>
+              <div class="step-body">
+                <p class="step-n">II</p>
+                <h3>Place</h3>
+                <p>Each notion arrives in your hands as a small, absurd, moving scene. Canberra? A kangaroo bouncing on your lamp. Pinch it, carry it, set it down on the object you choose. Your furniture becomes a route, left to right from your seat — the same route, every night.</p>
+              </div>
+            </li>
+            <li class="step reveal">
+              <!-- MEDIA PLACEHOLDER (slot "recall"): /media/step-recall.jpg — question + three bubbles over a glowing object, 4:3 -->
+              <div class="step-media media" data-slot="recall">
+                <div class="fb fb-recall" aria-hidden="true">
+                  <div class="glow-obj"></div>
+                  <p class="q-card"><span class="q-kicker">The window asks</span>When was the Armistice signed?</p>
+                  <div class="q-bubbles"><span>1917</span><span class="gazed">1918</span><span>1919</span></div>
+                  <p class="voice"><i></i><i></i><i></i><i></i><i></i> “Nineteen eighteen”</p>
+                </div>
+              </div>
+              <div class="step-body">
+                <p class="step-n">III</p>
+                <h3>Recall</h3>
+                <p>Lights out: the scenes vanish, your objects keep a faint glow. Look at one and its question appears. Say the answer aloud, pinch one of three bubbles, or turn your palm up to reveal it and grade yourself. Get it right and the scene springs back to life. Tomorrow, only what’s due will glow.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ THREE LEVERS ═════════════════════════════ -->
+      <section class="sec levers" aria-labelledby="levers-title">
+        <div class="wrap">
+          <header class="sec-head center reveal">
+            <p class="eyebrow">Why it works</p>
+            <h2 id="levers-title">Three levers, pulled at once.</h2>
+            <p class="sub">Most study apps pick one. Loci refuses to trade any of them away.</p>
+          </header>
+          <div class="lever-grid">
+            <article class="lever reveal">
+              <div class="lever-ic" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M14 50h36" /><path d="M22 50V30h20v20" /><path d="M32 30V18" /><circle cx="32" cy="14" r="4" /><path d="M20 22c3-6 7-9 12-9s9 3 12 9" opacity=".5" /></svg>
+              </div>
+              <p class="lever-n">01</p>
+              <h3>Real spatial anchoring</h3>
+              <p>The fact sits on <em>your</em> lamp — not in a virtual room you’ll never see again. In the exam hall, you close your eyes and walk your own bedroom.</p>
+            </article>
+            <article class="lever reveal">
+              <div class="lever-ic" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M32 52c-9 0-14-8-13-17 1-9 5-19 13-19s12 10 13 19c1 9-4 17-13 17z" /><circle cx="32" cy="38" r="5" /><circle cx="18" cy="12" r="3" /><circle cx="32" cy="7" r="3" /><circle cx="46" cy="12" r="3" /></svg>
+              </div>
+              <p class="lever-n">02</p>
+              <h3>Vivid mnemonic scenes</h3>
+              <p>Bizarre, funny, exaggerated, moving — the rules mnemonists have taught for centuries. Avogadro’s 6.02&nbsp;×&nbsp;10²³ becomes a giant avocado juggling six balls.</p>
+            </article>
+            <article class="lever reveal">
+              <div class="lever-ic" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M8 48c8-24 14-28 18-10s8 14 12 0 8-14 18-26" /><circle cx="26" cy="38" r="3" /><circle cx="38" cy="38" r="3" /><circle cx="56" cy="12" r="3" /></svg>
+              </div>
+              <p class="lever-n">03</p>
+              <h3>Active spaced recall</h3>
+              <p>You never just re-read. You retrieve each answer at the moment you’re about to forget it. Miss one and its scene replays — even more exaggerated.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ ROOM FILLS UP ═════════════════════════════ -->
+      <section class="sec tiers" id="progress" aria-labelledby="tiers-title">
+        <div class="wrap">
+          <header class="sec-head reveal">
+            <p class="eyebrow">Your room fills up</p>
+            <h2 id="tiers-title">No streaks. No guilt. <span class="dim">Just a room that fills with what you know.</span></h2>
+          </header>
+          <ol class="tier-row">
+            <li class="tier reveal">
+              <div class="tier-art" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <ellipse cx="60" cy="96" rx="40" ry="8" fill="url(#g-halo)" />
+                  <g class="t-new">
+                    <path d="M60 36c-12 0-18 14-19 26-1 14 7 26 19 26s20-12 19-26c-1-12-7-26-19-26z" fill="#3f7a4a" />
+                    <path d="M60 44c-8 0-12 10-13 18-1 10 5 19 13 19s14-9 13-19c-1-8-5-18-13-18z" fill="#c8df82" />
+                    <circle cx="60" cy="66" r="7" fill="#8a5a36" />
+                    <circle cx="38" cy="26" r="4" fill="#d9483b" /><circle cx="60" cy="16" r="4" fill="#3f74c4" /><circle cx="82" cy="26" r="4" fill="#f6d354" />
+                  </g>
+                  <path d="M20 100h80" stroke="#5e3b22" stroke-width="6" stroke-linecap="round" />
+                </svg>
+              </div>
+              <h3>New</h3>
+              <p>Just placed. The full scene, animated, singing its little sound.</p>
+            </li>
+            <li class="tier reveal">
+              <div class="tier-art" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <ellipse cx="60" cy="64" rx="36" ry="36" fill="none" stroke="#f6c65e" stroke-opacity=".35" stroke-dasharray="3 5" />
+                  <g opacity=".38">
+                    <path d="M60 36c-12 0-18 14-19 26-1 14 7 26 19 26s20-12 19-26c-1-12-7-26-19-26z" fill="#a8b8a0" />
+                    <path d="M60 44c-8 0-12 10-13 18-1 10 5 19 13 19s14-9 13-19c-1-8-5-18-13-18z" fill="#e8ecd6" />
+                    <circle cx="60" cy="66" r="7" fill="#b8ad9c" />
+                  </g>
+                  <path d="M20 100h80" stroke="#5e3b22" stroke-width="6" stroke-linecap="round" />
+                </svg>
+              </div>
+              <h3>Fragile</h3>
+              <p>One right answer. The scene turns pale, a faint halo waits for tomorrow.</p>
+            </li>
+            <li class="tier reveal">
+              <div class="tier-art" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <ellipse cx="60" cy="90" rx="34" ry="10" fill="url(#g-halo)" opacity=".6" />
+                  <path d="M48 98h24l-3-16H51z" fill="#8a5a36" />
+                  <path d="M60 82V58" stroke="#5f9a4a" stroke-width="3" />
+                  <path d="M60 66c-4-14-16-20-26-16 2 12 14 18 26 16z" fill="#6fae5a" />
+                  <path d="M60 60c4-16 16-24 28-20-2 14-14 22-28 20z" fill="#8cc466" />
+                  <path d="M60 50c-2-8 0-14 6-18 2 8 0 14-6 18z" fill="#a9cf54" />
+                  <path d="M20 100h80" stroke="#5e3b22" stroke-width="6" stroke-linecap="round" />
+                </svg>
+              </div>
+              <h3>Solid</h3>
+              <p>Three right, spaced out. A small plant or crystal grows on the object.</p>
+            </li>
+            <li class="tier reveal">
+              <div class="tier-art" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <ellipse cx="60" cy="62" rx="46" ry="46" fill="url(#g-halo)" />
+                  <g class="t-gold">
+                    <path d="M60 26l16 18-6 42H50l-6-42z" fill="url(#g-gold)" />
+                    <path d="M60 26l16 18-16 6-16-6z" fill="#fff0c2" />
+                    <path d="M60 50l10 36H60z" fill="#a8741f" opacity=".6" />
+                  </g>
+                  <path d="M20 100h80" stroke="#5e3b22" stroke-width="6" stroke-linecap="round" />
+                </svg>
+              </div>
+              <h3>Anchored</h3>
+              <p>Five right over two weeks or more. A permanent golden object. It stays.</p>
+            </li>
+          </ol>
+
+          <div class="tiers-foot">
+            <!-- MEDIA PLACEHOLDER (slot "room"): /media/room-filled.jpg — a real room after a chapter, full of plants/crystals/gold, 16:9 -->
+            <div class="room-shot media reveal" data-slot="room">
+              <div class="fb fb-room" aria-hidden="true">
+                <div class="shelf-line"><i class="gem g1"></i><i class="gem g2 gold"></i><i class="sprout"></i><i class="gem g3"></i><i class="gem g4 gold"></i><i class="sprout s2"></i><i class="gem g5"></i></div>
+                <div class="shelf-line l2"><i class="sprout"></i><i class="gem g2"></i><i class="gem gold"></i><i class="sprout s2"></i><i class="gem g3 gold"></i></div>
+                <p class="fb-cap">After a chapter, your room is visibly inhabited by what you know.</p>
+              </div>
+            </div>
+            <aside class="countdown reveal" aria-label="Example: exam countdown">
+              <p class="cd-kicker">Exam countdown</p>
+              <p class="cd-big"><span>12</span> days to History</p>
+              <div class="cd-bar" role="img" aria-label="Example: 9 anchored, 5 solid, 4 fragile, 2 new out of 20 notions">
+                <i style="--w:45%" class="a"></i><i style="--w:25%" class="s"></i><i style="--w:20%" class="f"></i><i style="--w:10%" class="n"></i>
+              </div>
+              <ul class="cd-legend"><li><i class="a"></i>Anchored</li><li><i class="s"></i>Solid</li><li><i class="f"></i>Fragile</li><li><i class="n"></i>New</li></ul>
+              <p class="cd-note">Enter your exam date and Loci paces the reviews so every notion is solid the day before. Tonight: 6 reviews, 2 new, about 7 minutes.</p>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ HANDS & GLASSES ═════════════════════════════ -->
+      <section class="sec hands" id="hands" aria-labelledby="hands-title">
+        <div class="wrap">
+          <div class="hands-grid">
+            <div class="hands-left">
+              <header class="sec-head reveal">
+            <p class="eyebrow">Built for hands &amp; glasses</p>
+            <h2 id="hands-title">Your hands are the controller. <span class="dim">Your chair is the cockpit.</span></h2>
+            <p class="sub">Every interaction is seated, within 60&nbsp;cm, and readable in the narrow central field of view of Meta VR Glasses. Nothing to hold, nothing to learn twice.</p>
+          </header>
+            <ul class="gestures">
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><path d="M4 24c6-9 12-13 20-13s14 4 20 13c-6 9-12 13-20 13S10 33 4 24z" /><circle cx="24" cy="24" r="5" /></svg>
+                <div><b>Gaze + pinch</b><span>Select an object. No outstretched arm — fine in an airplane seat.</span></div>
+              </li>
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><circle cx="12" cy="30" r="4" /><circle cx="20" cy="30" r="4" /><path d="M26 20l12-10M38 10h-8M38 10v8" /><path d="M8 40h32" opacity=".5" /></svg>
+                <div><b>Pinch, move, release</b><span>Place a scene. The natural way to put something down.</span></div>
+              </li>
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><circle cx="10" cy="30" r="5" /><circle cx="24" cy="30" r="5" /><circle cx="38" cy="30" r="5" /><path d="M16 12c2-3 5-3 7 0s5 3 7 0 5-3 7 0" /></svg>
+                <div><b>Voice or bubble</b><span>Answer aloud — or pinch one of three bubbles. Hands-free when you want it.</span></div>
+              </li>
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><path d="M6 26c4 10 10 14 18 14s14-4 18-14" /><path d="M10 26V16M17 26V12M24 26V11M31 26V12M38 26V17" /><circle cx="24" cy="4" r="0" /></svg>
+                <div><b>Turn palm up</b><span>Reveal the answer, then grade yourself. Readable, impossible by accident.</span></div>
+              </li>
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><rect x="12" y="10" width="24" height="30" rx="10" /><path d="M19 22h10M19 28h10" /></svg>
+                <div><b>Look at your palm</b><span>Pause menu, platform-standard. Take the headset off and it waits for you.</span></div>
+              </li>
+              <li class="gesture reveal">
+                <svg aria-hidden="true" viewBox="0 0 48 48"><rect x="14" y="16" width="20" height="18" rx="7" /><path d="M24 6a18 18 0 1 1-12.7 5.3" stroke-dasharray="3 3" /></svg>
+                <div><b>Close your fist, 1 s</b><span>Quit. Everything is already saved.</span></div>
+              </li>
+            </ul>
+            </div>
+            <figure class="fov reveal" aria-labelledby="fov-cap">
+              <svg viewBox="0 0 520 310" role="img" aria-label="Top-down diagram of a seated learner: a 70 degree field of view, a brighter plus or minus 20 degree reading zone between 45 and 80 centimetres, and a 60 centimetre reach arc.">
+                <path d="M260 270L116.6 65.2A250 250 0 0 1 403.4 65.2Z" fill="#f2b24a" fill-opacity=".05" stroke="#e9b949" stroke-opacity=".3" />
+                <path d="M217.6 153.4L184.8 63.3A220 220 0 0 1 335.2 63.3L302.4 153.4A124 124 0 0 0 217.6 153.4Z" fill="#f2b24a" fill-opacity=".2" stroke="#f6c65e" stroke-opacity=".75" />
+                <path d="M117.1 187.5A165 165 0 0 1 402.9 187.5" fill="none" stroke="#f3e6c8" stroke-opacity=".55" stroke-width="1.5" stroke-dasharray="4 6" />
+                <ellipse cx="260" cy="294" rx="48" ry="16" fill="#2e1d11" />
+                <circle cx="260" cy="270" r="15" fill="#3b2616" stroke="#e9b949" stroke-opacity=".6" />
+                <path d="M255 256l5-7 5 7" fill="none" stroke="#e9b949" stroke-width="1.5" />
+                <text x="260" y="36" text-anchor="middle" class="fov-t">~70° field of view</text>
+                <text x="260" y="114" text-anchor="middle" class="fov-t strong">±20°</text>
+                <path d="M322 104h44" stroke="#f6c65e" stroke-opacity=".5" />
+                <text x="372" y="100" class="fov-t strong-s">Reading zone</text>
+                <text x="372" y="121" class="fov-t small">45–80 cm away</text>
+                <path d="M124 196l-8 10" stroke="#f3e6c8" stroke-opacity=".4" />
+                <text x="112" y="222" text-anchor="end" class="fov-t strong-s">Reach</text>
+                <text x="112" y="243" text-anchor="end" class="fov-t small">60 cm, seated</text>
+              </svg>
+              <figcaption id="fov-cap">Designed for a seated learner and a ~70°×66° field of view — so the same palace works on Meta Quest and on Meta VR Glasses.</figcaption>
+              <dl class="specs">
+                <div><dt>&lt;&nbsp;10&nbsp;s</dt><dd>from launch to your palace</dd></div>
+                <div><dt>60&nbsp;fps</dt><dd>with twenty scenes in the room</dd></div>
+                <div><dt>0</dt><dd>controllers, menus to read, or keyboards</dd></div>
+                <div><dt>Resume</dt><dd>take it off, put it back on — same moment</dd></div>
+              </dl>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ AI ═════════════════════════════ -->
+      <section class="sec ai" id="ai" aria-labelledby="ai-title">
+        <div class="wrap">
+          <header class="sec-head reveal">
+            <p class="eyebrow">AI that serves the method</p>
+            <h2 id="ai-title">The AI does the tedious part. <span class="dim">Then it steps aside.</span></h2>
+          </header>
+          <ol class="flow reveal" aria-label="From notes to room">
+            <li><b>Your notes</b><span>Photo, PDF or pasted text — English or French</span></li>
+            <li><b>Atomic notions</b><span>Claude splits the course into ≤ 20 question–answer pairs you validate</span></li>
+            <li><b>Mnemonic scenes</b><span>Claude composes each scene from a library of hand-built 3D models and animations</span></li>
+            <li><b>Your room</b><span>You place them. Spaced repetition decides when each one glows again</span></li>
+          </ol>
+          <div class="ai-grid">
+            <div class="ai-card reveal">
+              <h3>Composed, never generated</h3>
+              <p>Loci never generates 3D on the fly. It assembles scenes from its own library of low-poly models and animations, following the mnemonist’s rules: exaggerated, moving, absurd, tied to a sound or a meaning. So a scene is ready in seconds, runs smoothly in the headset, and always looks like it belongs in your room.</p>
+            </div>
+            <div class="ai-card unplug reveal">
+              <h3>Unplug it. Loci still works.</h3>
+              <ul>
+                <li>Built-in palaces ship with the app: world capitals, and WWI &amp; WWII.</li>
+                <li>An offline splitter and scene composer take over if the AI is unavailable.</li>
+                <li>Voice recognition runs entirely on the headset.</li>
+                <li>Your room layout never leaves the device.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ VISION ═════════════════════════════ -->
+      <section class="sec vision" aria-labelledby="vision-title">
+        <div class="wrap">
+          <div class="vision-hero reveal">
+            <p class="eyebrow">The vision</p>
+            <h2 id="vision-title">Every student has a room.</h2>
+            <p class="sub">Hundreds of millions of students sit exams every year, and most of them revise the same way: re-reading, alone, the night before. A room is the one study tool everyone already owns. Mixed reality finally lets it do the remembering.</p>
+          </div>
+          <ol class="horizon">
+            <li class="reveal"><p class="h-when">Tonight</p><h3>Students</h3><p>Dates, formulas, definitions, vocabulary — anything with facts that have to be there on the day. High school to university.</p></li>
+            <li class="reveal"><p class="h-when">Next <span class="pill">Roadmap</span></p><h3>Classrooms</h3><p>A teacher publishes a chapter; every student places it in their own room and walks their own route.</p></li>
+            <li class="reveal"><p class="h-when">Later <span class="pill">Roadmap</span></p><h3>Lifelong learners</h3><p>Languages, medicine, law, certifications, driving theory. Wherever memory is the bottleneck.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ FAQ ═════════════════════════════ -->
+      <section class="sec faq" id="faq" aria-labelledby="faq-title">
+        <div class="wrap faq-grid">
+          <header class="reveal">
+            <p class="eyebrow">Questions</p>
+            <h2 id="faq-title">Asked by the curious <span class="dim">and the sceptical.</span></h2>
+          </header>
+          <div class="faq-list reveal">
+            <details>
+              <summary>Which headsets does Loci run on?</summary>
+              <p>Loci is a WebXR app for Meta Quest Browser. It is built and tested on Meta Quest 2 and designed for Quest 3 and 3S, whose depth sensing understands your room even better. Everything essential sits in the central field of view, so it is ready for Meta VR Glasses too.</p>
+            </details>
+            <details>
+              <summary>Do I need to install anything?</summary>
+              <p>No. Open the link in Meta Quest Browser and enter. You can add it to your library as an app for one-tap launch. Your phone just needs a browser to import a course.</p>
+            </details>
+            <details>
+              <summary>What if my room isn’t detected?</summary>
+              <p>Loci uses the furniture from your headset’s Space Setup — desk, bed, shelf, lamp, window. If your room is sparse or unknown, the flame helps you pin anchors on your walls by hand, and those work just as well.</p>
+            </details>
+            <details>
+              <summary>Will my scenes still be there tomorrow?</summary>
+              <p>Yes. Each scene is stored relative to its piece of furniture, and Loci re-aligns your room every session from the furniture it recognises. Take the headset off mid-session and you’ll come back to the exact same moment.</p>
+            </details>
+            <details>
+              <summary>Can I import a course in French?</summary>
+              <p>Yes. The interface is in English, but courses can be in English or French — accents render correctly and answers are matched without being fussy about them. Voice answers are English for now; the three bubbles always work.</p>
+            </details>
+            <details>
+              <summary>What happens to my notes and my room?</summary>
+              <p>There are no accounts. Your room layout, your progress and your voice stay on the headset. The course you import is sent to our server — and, when AI is on, to Anthropic’s Claude API — only to be split into notions and handed to your headset through a pairing code that expires within the hour.</p>
+            </details>
+            <details>
+              <summary>Is this proven to work?</summary>
+              <p>The ingredients are among the best-studied in memory research: the method of loci, retrieval practice and spaced repetition. Loci itself is new, so we’re measuring it honestly — a small study with classmates comparing Loci to re-reading, with recall tested after 48 hours and after a week. We’ll publish what we find, whatever it is.</p>
+            </details>
+            <details>
+              <summary>How long is a session?</summary>
+              <p>The first one takes about five minutes and ends with you recalling five capitals from memory. After that, a daily session is five to ten minutes: only the notions that are due will glow.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════════════════════ FINAL CTA ═════════════════════════════ -->
+      <section class="final" aria-labelledby="final-title">
+        <div class="final-glow" aria-hidden="true"></div>
+        <div class="wrap final-inner reveal">
+          <svg class="final-flame" aria-hidden="true" viewBox="0 0 100 140"><use href="#i-flame" /></svg>
+          <h2 id="final-title">Import your course tonight.</h2>
+          <p class="sub">Tomorrow, close your eyes. The answers are where you left them.</p>
+          <div class="ctas center">
+            <a class="btn btn-gold" href="/app/">Open on Quest</a>
+            <a class="btn btn-ghost" href="/import/">Import a course <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="/" aria-label="Loci — home"><svg class="brand-mark" aria-hidden="true"><use href="#i-arch" /></svg><span>Loci</span></a>
+          <p>Your room remembers. Made by a student who revises for exams, for everyone who does.</p>
+        </div>
+        <nav aria-label="Footer">
+          <p class="foot-h">Loci</p>
+          <a href="/app/">Open on Quest</a>
+          <a href="/import/">Import a course</a>
+          <a href="#how">How it works</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <div class="sources">
+          <p class="foot-h">Notes &amp; sources</p>
+          <ol>
+            <li>Ebbinghaus, H. (1885). <i>Über das Gedächtnis</i>.</li>
+            <li>Cicero, <i>De Oratore</i>, II.</li>
+            <li>Maguire, E. A. et al. (2003). Routes to remembering: the brains behind superior memory. <i>Nature Neuroscience</i>.</li>
+            <li>Roediger, H. L. &amp; Karpicke, J. D. (2006). Test-enhanced learning. <i>Psychological Science</i>.</li>
+            <li>Dunlosky, J. et al. (2013). Improving students’ learning with effective learning techniques. <i>Psychological Science in the Public Interest</i>.</li>
+            <li>Dresler, M. et al. (2017). Mnemonic training reshapes brain networks to support superior memory. <i>Neuron</i>.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="wrap foot-base">
+        <p>© 2026 Loci. Built with WebXR and the Immersive Web SDK.</p>
+        <p>Meta Quest and Meta VR Glasses are trademarks of Meta Platforms, Inc. Loci is an independent project.</p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/landing/main.ts"></script>
+  </body>
+</html>

@@ -34,6 +34,7 @@ export default defineConfig({
         app: resolve(__dirname, 'app/index.html'),
         import: resolve(__dirname, 'import/index.html'),
         gallery: resolve(__dirname, 'gallery/index.html'),
+        audio: resolve(__dirname, 'audio/index.html'),
       },
     },
   },

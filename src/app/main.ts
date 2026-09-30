@@ -1,6 +1,6 @@
 import { World, SessionMode } from '@iwsdk/core';
 import * as THREE from 'three';
-import { installEmulator, emuLookAt, type EmuRoom } from './emulation';
+import { installEmulator, emuLookAt, emuPose, type EmuRoom } from './emulation';
 import { createBootUI } from './boot-ui';
 import { App } from './app';
 import { AppStore } from './state/store';
@@ -44,6 +44,8 @@ async function boot() {
     render: { near: 0.02, far: 40 },
   });
   world.renderer.setClearColor(0x000000, 0);
+  const { setFxViewer } = await import('../lib3d/fx/common');
+  setFxViewer(world.camera);
   const app = new App(world, store);
   const w = window as unknown as Record<string, unknown>;
   w.__world = world;
@@ -73,6 +75,8 @@ async function boot() {
       }
     });
     session.addEventListener('end', () => {
+      XR.session = null;
+      XR.frame = null;
       store.saveNow();
       app.newToken();
       running = null;
@@ -231,6 +235,24 @@ function installDebugHooks(app: App) {
     XR,
     THREE,
     lookAt: emuLookAt,
+    pose: emuPose,
+    /**
+     * Max horizontal distance between each placed scene and the box of the object it was
+     * placed on, as detected NOW by the headset (proves persistence + registration).
+     */
+    placementError: () => {
+      let worst = 0;
+      const v = new THREE.Vector3();
+      for (const it of app.view.items.values()) {
+        const sid = app.room.matchedSessionId(it.placement.furnitureId);
+        const cur = sid ? app.scanner.furniture.get(sid) : undefined;
+        if (!cur) continue;
+        it.anchor.getWorldPosition(v);
+        const d = Math.hypot(v.x - cur.center[0], v.z - cur.center[2]) - Math.hypot(cur.size[0], cur.size[2]) / 2;
+        worst = Math.max(worst, d);
+      }
+      return worst;
+    },
     /** World position of a placed notion's scene / a bubble / the flame (for tests). */
     posOf: (what: string) => {
       const v = new THREE.Vector3();

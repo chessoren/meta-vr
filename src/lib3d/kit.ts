@@ -367,3 +367,196 @@ export function stats(root: THREE.Object3D) {
   });
   return { tris: Math.round(tris), meshes };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Organic modelling helpers (additive). Used by the character / nature libraries.
+// ─────────────────────────────────────────────────────────────────────────────
+export type V3 = [number, number, number];
+
+/** `o.tint` if given, else the default colour: the one-liner every builder uses for its main colour. */
+export const tintOr = (o: { tint?: string }, def: ColorLike): ColorLike => o.tint ?? def;
+
+/** A lighter (k > 0) or darker (k < 0) variant of a colour, as CSS hex. k in −1…1. */
+export function shade(c: ColorLike, k: number): string {
+  const col = color(c);
+  const hsl = { h: 0, s: 0, l: 0 };
+  col.getHSL(hsl);
+  hsl.l = k >= 0 ? hsl.l + (1 - hsl.l) * k : hsl.l * (1 + k);
+  return '#' + col.setHSL(hsl.h, hsl.s, hsl.l).getHexString();
+}
+
+function swapVert(arr: THREE.TypedArray, size: number, i: number, j: number) {
+  for (let c = 0; c < size; c++) {
+    const t = arr[i * size + c];
+    arr[i * size + c] = arr[j * size + c];
+    arr[j * size + c] = t;
+  }
+}
+
+/** A copy of a part mirrored across X = 0, with triangle winding fixed so faces stay outward. */
+export function mirrorX(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const m = (g.index ? g.toNonIndexed() : g).clone();
+  const pos = m.getAttribute('position') as THREE.BufferAttribute;
+  const col = m.getAttribute('color') as THREE.BufferAttribute | undefined;
+  for (let i = 0; i < pos.count; i++) pos.setX(i, -pos.getX(i));
+  for (let i = 0; i + 2 < pos.count; i += 3) {
+    swapVert(pos.array, 3, i + 1, i + 2);
+    if (col) swapVert(col.array, col.itemSize, i + 1, i + 2);
+  }
+  pos.needsUpdate = true;
+  return m;
+}
+
+/** The given parts plus their X-mirrored twins (left/right symmetry in one call). */
+export function sym(...parts: THREE.BufferGeometry[]): THREE.BufferGeometry[] {
+  return [...parts, ...parts.map(mirrorX)];
+}
+
+/** Place an already-painted part so its local +Z points along `dir` (scale applies in local axes first). */
+export function orient(g: THREE.BufferGeometry, pos: V3, dir: V3, scale: V3 = [1, 1, 1]): THREE.BufferGeometry {
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...dir).normalize());
+  g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(...pos), q, new THREE.Vector3(...scale)));
+  return g;
+}
+
+export interface SweepOpts extends PartOpts {
+  /** Sides of the cross-section (5–6 reads as low-poly). */
+  sides?: number;
+  /** Close both ends (default true). */
+  caps?: boolean;
+  /** Squash the cross-section along its binormal (1 = round, 0.5 = flat ribbon). */
+  flat?: number;
+  /** Roll of the cross-section around the path, radians. */
+  roll?: number;
+}
+
+/**
+ * Sweep a (tapered) tube along a polyline — tails, trunks, bananas, limbs, scarves, horns.
+ * `radius` is a constant, one value per path point, or a function of u ∈ [0, 1].
+ */
+export function sweep(path: V3[], radius: number | number[] | ((u: number) => number), c: ColorLike, o: SweepOpts = {}): THREE.BufferGeometry {
+  const n = path.length;
+  const sides = o.sides ?? 6;
+  const flat = o.flat ?? 1;
+  const R = (i: number) =>
+    typeof radius === 'number' ? radius : Array.isArray(radius) ? (radius[i] ?? radius[radius.length - 1]) : radius(n > 1 ? i / (n - 1) : 0);
+  const P = path.map((p) => new THREE.Vector3(...p));
+  const T = P.map((_, i) => new THREE.Vector3().subVectors(P[Math.min(n - 1, i + 1)], P[Math.max(0, i - 1)]).normalize());
+  const N = Math.abs(T[0].y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  const B = new THREE.Vector3();
+  const v: number[] = [];
+  const idx: number[] = [];
+  const tmp = new THREE.Vector3();
+  for (let i = 0; i < n; i++) {
+    N.sub(tmp.copy(T[i]).multiplyScalar(N.dot(T[i]))).normalize();
+    B.crossVectors(T[i], N);
+    const r = R(i);
+    for (let s = 0; s < sides; s++) {
+      const a = (s / sides) * Math.PI * 2 + (o.roll ?? 0);
+      const cx = Math.cos(a) * r;
+      const cy = Math.sin(a) * r * flat;
+      v.push(P[i].x + N.x * cx + B.x * cy, P[i].y + N.y * cx + B.y * cy, P[i].z + N.z * cx + B.z * cy);
+    }
+  }
+  for (let i = 0; i < n - 1; i++)
+    for (let s = 0; s < sides; s++) {
+      const a = i * sides + s;
+      const b = i * sides + ((s + 1) % sides);
+      const cc = (i + 1) * sides + s;
+      const d = (i + 1) * sides + ((s + 1) % sides);
+      idx.push(a, b, cc, b, d, cc);
+    }
+  if (o.caps ?? true) {
+    const s0 = v.length / 3;
+    v.push(P[0].x, P[0].y, P[0].z);
+    const e0 = s0 + 1;
+    v.push(P[n - 1].x, P[n - 1].y, P[n - 1].z);
+    for (let s = 0; s < sides; s++) {
+      const a = s;
+      const b = (s + 1) % sides;
+      idx.push(s0, b, a);
+      idx.push(e0, (n - 1) * sides + a, (n - 1) * sides + b);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  return part(g, c, o);
+}
+
+/** A straight tapered limb from a to b (6-sided tube with caps). */
+export const limb = (a: V3, b: V3, r0: number, r1: number, c: ColorLike, o: SweepOpts = {}) => sweep([a, b], [r0, r1], c, o);
+
+/** Sample a quadratic Bézier a→b with control point m into `n` points (for sweep paths). */
+export function curve(a: V3, m: V3, b: V3, n = 6): V3[] {
+  const out: V3[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const u = 1 - t;
+    out.push([u * u * a[0] + 2 * u * t * m[0] + t * t * b[0], u * u * a[1] + 2 * u * t * m[1] + t * t * b[1], u * u * a[2] + 2 * u * t * m[2] + t * t * b[2]]);
+  }
+  return out;
+}
+
+export interface EyeOpts {
+  /** Centre of the character's LEFT eye (+X); the right eye is mirrored. */
+  x: number;
+  y: number;
+  z: number;
+  /** Eye radius. */
+  r: number;
+  /** Outward turn of each eye, radians (eyes sit on a round head). */
+  yaw?: number;
+  /** Pupil colour (default ink). */
+  pupil?: ColorLike;
+  /** Sclera colour; null → toy style (glossy bead eye, no white). */
+  sclera?: ColorLike | null;
+  /** Pupil size relative to r (default 0.62). */
+  pupilR?: number;
+  /** Where the pupils look (default straight at the learner, +Z). */
+  look?: V3;
+  /** Iris ring colour between sclera and pupil (owls, cats). */
+  iris?: ColorLike;
+  /** Vertical stretch of the eye (default 1.1 — slightly tall ovals read cuter). */
+  tall?: number;
+}
+
+/** Big expressive cartoon eyes (pair): sclera + pupil + catch-light, mirrored across X. */
+export function eyePair(o: EyeOpts): THREE.BufferGeometry[] {
+  const yaw = o.yaw ?? 0.3;
+  const tall = o.tall ?? 1.1;
+  const r = o.r;
+  const dir: V3 = [Math.sin(yaw), 0, Math.cos(yaw)];
+  const lk = new THREE.Vector3(...(o.look ?? [0, 0, 1])).normalize();
+  const pd = new THREE.Vector3(...dir).multiplyScalar(0.3).addScaledVector(lk, 0.7).normalize();
+  const c: V3 = [o.x, o.y, o.z];
+  const at = (d: number, up = 0, side = 0): V3 => [c[0] + pd.x * d + side, c[1] + pd.y * d + up, c[2] + pd.z * d];
+  const pdir: V3 = [pd.x, pd.y, pd.z];
+  const parts: THREE.BufferGeometry[] = [];
+  const pr = r * (o.pupilR ?? 0.66);
+  if (o.sclera !== null) {
+    parts.push(orient(part(new THREE.IcosahedronGeometry(r, 1), o.sclera ?? '#ffffff', { ao: 0 }), c, dir, [1, tall, 0.8]));
+    if (o.iris) parts.push(orient(part(new THREE.IcosahedronGeometry(pr * 1.3, 1), o.iris, { ao: 0 }), at(r * 0.58), pdir, [1, tall, 0.4]));
+    parts.push(orient(part(new THREE.IcosahedronGeometry(pr, 1), o.pupil ?? PAL.ink, { ao: 0 }), at(r * (o.iris ? 0.66 : 0.56)), pdir, [1, tall, 0.45]));
+    parts.push(orient(part(new THREE.IcosahedronGeometry(r * 0.17, 0), PAL.white, { ao: 0 }), at(r * 0.84, r * 0.26 * tall, r * 0.2), pdir));
+  } else {
+    parts.push(orient(part(new THREE.IcosahedronGeometry(r, 1), o.pupil ?? PAL.ink, { ao: 0 }), c, pdir, [0.85, tall, 0.55]));
+    parts.push(orient(part(new THREE.IcosahedronGeometry(r * 0.26, 0), PAL.white, { ao: 0 }), at(r * 0.5, r * 0.34 * tall, r * 0.22), pdir));
+  }
+  return sym(...parts);
+}
+
+/** A smiling mouth arc facing +Z (torus segment, lower half). */
+export function smile(pos: V3, w: number, c: ColorLike = PAL.ink, o: { tube?: number; arc?: number; tilt?: number } = {}) {
+  const arc = o.arc ?? Math.PI * 0.8;
+  const g = part(new THREE.TorusGeometry(w / 2, o.tube ?? w * 0.09, 4, 8, arc), c, { ao: 0 });
+  g.rotateZ(-Math.PI / 2 - arc / 2);
+  g.rotateX(o.tilt ?? 0);
+  g.translate(pos[0], pos[1] + w * 0.25, pos[2]);
+  return g;
+}
+
+/** Rosy cheeks pair (flat discs) at ±x. */
+export function cheeks(x: number, y: number, z: number, r: number, c: ColorLike = PAL.pink, yaw = 0.5): THREE.BufferGeometry[] {
+  return sym(orient(part(new THREE.CylinderGeometry(r, r, r * 0.25, 8), c, { ao: 0 }).rotateX(Math.PI / 2), [x, y, z], [Math.sin(yaw), 0, Math.cos(yaw)], [1, 0.7, 1]));
+}

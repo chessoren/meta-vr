@@ -5,6 +5,7 @@ import { until, wait, waitFor } from '../flow/runtime';
 import { XR, headYaw } from '../xr/context';
 import { pinchSelection, pointer } from '../xr/targeting';
 import { sfx } from '../sfx';
+import { pentatonicRatio } from '../../audio/music';
 
 const _v = new THREE.Vector3();
 
@@ -39,21 +40,25 @@ export async function scanRoom(app: App, opts: { introduce: boolean }) {
   app.say('Your room', 'happy', 2);
   await wait(1.2, token);
   let i = 0;
-  for (const fid of route) {
+  // Visit at most 7 objects one by one (≈ 8 s), then light the rest together — the brief gives the scan 30 s.
+  const visit = route.length <= 7 ? route : route.filter((_, k) => k % Math.ceil(route.length / 7) === 0).slice(0, 7);
+  for (const fid of visit) {
     const f = app.room.getFurniture(fid);
     if (!f) continue;
     app.room.toSession([f.center[0], f.center[1] + f.size[1] / 2 + 0.12, f.center[2]], _v);
     // Stop a bit in front of the object (towards the learner) so the flame stays visible.
     const toHead = new THREE.Vector3().subVectors(XR.head.pos, _v).setY(0).normalize().multiplyScalar(0.12);
     _v.add(toHead);
-    await app.flameTo(_v.clone(), i === 0 ? 1.1 : 0.75);
+    await app.flameTo(_v.clone(), i === 0 ? 1.0 : 0.6);
     app.view.setHaloOverride(fid, 'scan');
-    sfx.play('scanPing', _v, { pitch: 1 + i * 0.08 });
+    sfx.play('scanPing', _v, { pitch: pentatonicRatio(i) });
     sfx.object(soundIndex(app, fid), _v, 'select');
     app.sparkles.emit(_v, '#ffd27a', 14, 0.35);
     i++;
-    await wait(0.35, token);
+    await wait(0.25, token);
   }
+  for (const fid of route) if (!visit.includes(fid)) app.view.setHaloOverride(fid, 'scan');
+  if (visit.length < route.length) sfx.play('lightsOn');
   await wait(0.6, token);
   for (const fid of route) app.view.setHaloOverride(fid, 'glow');
   await app.flameTo(app.flameHome(), 1.0);
@@ -87,7 +92,7 @@ export async function ensureLoci(app: App, want: number) {
     const f = app.room.addManual(hitPoint, yaw, Date.now());
     app.view.halo(f.id)?.setState('glow');
     app.view.setHaloOverride(f.id, 'scan');
-    sfx.play('scanPing', hitPoint, { pitch: 1 + planted * 0.1 });
+    sfx.play('scanPing', hitPoint, { pitch: pentatonicRatio(planted) });
     sfx.object(soundIndex(app, f.id), hitPoint, 'select');
     app.sparkles.emit(hitPoint, '#ffd27a', 20, 0.4);
     planted++;

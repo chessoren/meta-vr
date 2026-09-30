@@ -46,3 +46,13 @@ export function emuLookAt(x: number, y: number, z: number) {
   const cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
   emu.device.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
 }
+
+/** Move/turn the emulated headset (e.g. to simulate sitting elsewhere) and recentre the reference space. */
+export function emuPose(x: number, y: number, z: number, yawDeg: number, recenter = false) {
+  const emu = (window as unknown as { __emu?: Emulator }).__emu;
+  if (!emu) return;
+  emu.device.position.set(x, y, z);
+  const h = (yawDeg * Math.PI) / 360;
+  emu.device.quaternion.set(0, Math.sin(h), 0, Math.cos(h));
+  if (recenter) emu.device.recenter();
+}

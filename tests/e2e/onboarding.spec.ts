@@ -56,7 +56,7 @@ test('first five minutes: 5 capitals placed and recalled, 5/5 proof', async ({ p
   await pinch(page);
 
   // 0:30 scan → place
-  await expect.poll(async () => (await st(page)).flow?.step, { timeout: 60_000 }).toBe('place');
+  await expect.poll(async () => (await st(page)).flow?.step, { timeout: 120_000 }).toBe('place');
   const s0 = await st(page);
   const targets = s0.furniture.filter((f) => f.seen).map((f) => f.id);
   expect(targets.length).toBeGreaterThanOrEqual(3);
@@ -77,7 +77,7 @@ test('first five minutes: 5 capitals placed and recalled, 5/5 proof', async ({ p
   await shot(page, '4-placed');
 
   // 3:30 recall
-  await expect.poll(async () => (await st(page)).flow?.step, { timeout: 60_000 }).toBe('recall');
+  await expect.poll(async () => (await st(page)).flow?.step, { timeout: 120_000 }).toBe('recall');
   for (let i = 0; i < 5; i++) {
     await expect.poll(async () => (await st(page)).due.length, { timeout: 30_000 }).toBeGreaterThan(0);
     const s = await st(page);

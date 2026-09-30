@@ -177,6 +177,11 @@ export class RoomManager {
     return this.matched.has(id) || this.getFurniture(id)?.label === 'manual';
   }
 
+  /** The session-frame id of the scanned object matched to saved furniture `id` (if seen now). */
+  matchedSessionId(id: string) {
+    return this.matched.get(id);
+  }
+
   /** Matrix of a furniture box in the SESSION frame (for halos, hit-tests). */
   furnitureMatrix(f: Furniture, out = new THREE.Matrix4()) {
     out.makeRotationY(f.yaw).setPosition(f.center[0], f.center[1], f.center[2]);

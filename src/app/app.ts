@@ -336,19 +336,22 @@ export class App {
     const scene = V.scene(notion.scene);
     holder.add(scene.root);
     scene.setAppearance('full');
-    inFrontOfHead(0.42, 0.24, 0, holder.position);
+    inFrontOfHead(0.44, 0.3, 0, holder.position);
     holder.lookAt(XR.head.pos.x, holder.position.y, XR.head.pos.z);
     const rest = holder.position.clone();
+    const HELD_SCALE = 0.72; // ≈ 22 cm in the hands, full 30 cm on the object
     holder.scale.setScalar(0.01);
     sfx.play('appear', holder.position);
-    await tween(0.5, (u) => holder.scale.setScalar(Math.max(0.01, u)), token, easeOutBack);
+    await tween(0.5, (u) => holder.scale.setScalar(Math.max(0.01, u * HELD_SCALE)), token, easeOutBack);
     this.follow.snap();
-    this.caption.setText(opts.caption ?? `${notion.question.replace(/\?$/, '')} → ${notion.answer}`, [notion.answer.toUpperCase()]);
-    this.caption.root.position.set(0, 0.1, 0.02);
+    // Headline card (the answer, big) + the mnemonic ribbon, both above the scene.
+    this.card.setQuestion(notion.answer, notion.question.replace(/\?$/, ''));
+    this.card.root.position.set(0, 0.17, 0);
+    this.card.setVisible(true, true);
+    this.caption.setText(notion.scene.caption, notion.scene.hooks);
+    this.caption.root.position.set(0, 0.075, 0.02);
     this.caption.setVisible(true, true);
-    this.toast.setText(notion.scene.caption, notion.scene.hooks);
-    this.toast.root.position.set(0, 0.02, 0.03);
-    this.toast.setVisible(true, true);
+    void opts.caption;
     this.view.setGlobalHalo('glow');
     if (opts.suggest) this.view.setHaloOverride(opts.suggest, 'due');
 
@@ -375,7 +378,7 @@ export class App {
             grabOffset.copy(holder.position).sub(h.pinchPoint);
             if (grabOffset.length() > 0.2) grabOffset.setLength(0.06);
             sfx.play('pinch', holder.position);
-            this.caption.setVisible(false, true);
+            this.card.setVisible(false, true);
           }
           return false;
         }
@@ -404,7 +407,7 @@ export class App {
           // Released on nothing: float back to the hands.
           held = null;
           sfx.play('release', holder.position);
-          this.caption.setVisible(true, true);
+          this.card.setVisible(true, true);
         }
         return false;
       }, token);
@@ -418,6 +421,7 @@ export class App {
       sfx.play('whoosh', from);
       await tween(0.7, (u) => {
         holder.position.lerpVectors(from, to, u);
+        holder.scale.setScalar(HELD_SCALE + (1 - HELD_SCALE) * u);
         holder.position.y += Math.sin(u * Math.PI) * 0.18;
         scene.update(XR.dt, XR.time);
       }, token);
@@ -443,7 +447,8 @@ export class App {
       scene.dispose();
       holder.removeFromParent();
       this.caption.setVisible(false, true);
-      this.toast.setVisible(false, true);
+      this.card.setVisible(false, true);
+      this.card.root.position.set(0, 0.02, 0);
       this.view.setGlobalHalo(null);
       for (const fu of this.room.furniture()) this.view.setHaloOverride(fu.id, null);
     }
