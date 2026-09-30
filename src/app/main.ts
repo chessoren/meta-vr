@@ -130,6 +130,12 @@ async function boot() {
     world.launchXR();
   };
   ui.setReady(enter, store.data.onboardingDone ? 'Enter your palace' : 'Begin');
+  if (store.data.onboardingDone || store.data.progress.length) {
+    ui.offerReset(() => {
+      store.reset();
+      location.reload();
+    });
+  }
   ui.setStatus(`Hands only · stay seated · ready in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
   if (!navigator.xr && !emu) {
     ui.setError('This page runs in the <b>Meta Quest Browser</b>. On a computer, <a href="?emu=living_room">try the emulator</a>.');

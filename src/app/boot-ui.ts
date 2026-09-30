@@ -20,6 +20,8 @@ const CSS = `
 #boot .hint{font-size:17px;color:#cdb58f;opacity:.85}
 #boot .err{max-width:560px;font-size:18px;color:#ffcf9e;line-height:1.45}
 #boot a{color:#ffd27a}
+#boot .reset{margin-top:26px;background:none;border:0;color:#cdb58f;opacity:.6;font:500 15px Inter,system-ui,sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+#boot .reset.armed{opacity:1;color:#ffb27a}
 @keyframes flick{0%,100%{transform:scale(1,1) translateY(0)}50%{transform:scale(1.04,.96) translateY(2px)}}
 #boot .flame path{transform-origin:60px 140px;animation:flick 1.6s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){#boot .flame path{animation:none}}
@@ -33,6 +35,8 @@ const FLAME = `<svg class="flame" viewBox="0 0 120 150" aria-hidden="true"><defs
 
 export interface BootUI {
   el: HTMLElement;
+  /** Show a discreet "Start over" (erase all palaces) with a two-tap confirmation. */
+  offerReset(onReset: () => void): void;
   setReady(onEnter: () => void, label?: string): void;
   setError(html: string): void;
   setStatus(text: string): void;
@@ -46,14 +50,35 @@ export function createBootUI(): BootUI {
   document.head.appendChild(style);
   const el = document.getElementById('boot') ?? document.body.appendChild(Object.assign(document.createElement('div'), { id: 'boot' }));
   el.innerHTML = `<div class="wrap">${FLAME}<h1>Loci</h1><p class="tag">your room remembers</p>
-    <button id="enter" disabled>Loading…</button><div class="hint" id="boot-hint">Hands only · stay seated · about 5 minutes</div><div class="err" id="boot-err"></div></div>`;
+    <button id="enter" disabled>Loading…</button><div class="hint" id="boot-hint">Hands only · stay seated · about 5 minutes</div><div class="err" id="boot-err"></div><button class="reset" id="boot-reset" hidden>Start over</button></div>`;
   const btn = el.querySelector<HTMLButtonElement>('#enter')!;
   const err = el.querySelector<HTMLElement>('#boot-err')!;
   const hint = el.querySelector<HTMLElement>('#boot-hint')!;
   let handler: (() => void) | null = null;
   btn.addEventListener('click', () => handler?.());
+  const reset = el.querySelector<HTMLButtonElement>('#boot-reset')!;
   return {
     el,
+    offerReset(onReset) {
+      reset.hidden = false;
+      let armed = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      reset.onclick = () => {
+        if (!armed) {
+          armed = true;
+          reset.classList.add('armed');
+          reset.textContent = 'Tap again to erase your palaces and progress';
+          timer = setTimeout(() => {
+            armed = false;
+            reset.classList.remove('armed');
+            reset.textContent = 'Start over';
+          }, 4000);
+          return;
+        }
+        clearTimeout(timer);
+        onReset();
+      };
+    },
     setReady(onEnter, label = 'Enter your palace') {
       handler = onEnter;
       btn.disabled = false;
