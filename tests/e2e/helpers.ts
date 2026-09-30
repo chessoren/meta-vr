@@ -26,11 +26,21 @@ export const lookAt = (page: Page, p: number[]) => page.evaluate((p) => (window 
 export const posOf = (page: Page, what: string) => page.evaluate((w) => (window as any).__loci.posOf(w) as number[], what);
 export const ahead = [0, 1.1, -1];
 
-export async function pinch(page: Page, holdMs = 250) {
+/** Press the (emulated) pinch and wait until a rendered frame has seen it — robust at any frame rate. */
+export async function pinchDown(page: Page) {
   await page.evaluate(() => ((window as any).__loci.Hands.force.pinch = 'right'));
-  await page.waitForTimeout(holdMs);
+  await page.waitForFunction(() => (window as any).__loci.Hands.right.pinching, null, { timeout: 10_000 });
+}
+/** Release the pinch and wait until a frame has seen the release. */
+export async function pinchUp(page: Page) {
   await page.evaluate(() => ((window as any).__loci.Hands.force.pinch = null));
-  await page.waitForTimeout(150);
+  await page.waitForFunction(() => !(window as any).__loci.Hands.right.pinching, null, { timeout: 10_000 });
+}
+export async function pinch(page: Page, holdMs = 120) {
+  await pinchDown(page);
+  await page.waitForTimeout(holdMs);
+  await pinchUp(page);
+  await page.waitForTimeout(100);
 }
 
 /** Shift the page clock (Date.now) by `ms`, persisted across reloads. Call before goto. */
@@ -65,12 +75,12 @@ export async function enter(page: Page, url: string) {
 export async function placeN(page: Page, n: number, targets: string[], startCount: number, shot?: (i: number) => Promise<void>) {
   for (let i = 0; i < n; i++) {
     await expect.poll(async () => (await st(page)).presenting, { timeout: 40_000 }).not.toBeNull();
-    await page.evaluate(() => ((window as any).__loci.Hands.force.pinch = 'right'));
-    await page.waitForTimeout(300);
+    await pinchDown(page);
+    await page.waitForTimeout(200);
     await lookAt(page, await posOf(page, `furniture:${targets[i % targets.length]}`));
     await page.waitForTimeout(500);
     await shot?.(i);
-    await page.evaluate(() => ((window as any).__loci.Hands.force.pinch = null));
+    await pinchUp(page);
     await expect.poll(async () => (await st(page)).placements, { timeout: 15_000 }).toBe(startCount + i + 1);
     await lookAt(page, ahead);
   }
@@ -85,7 +95,13 @@ export async function recallN(page: Page, n: number, opts: { wrong?: number[]; s
     await lookAt(page, await posOf(page, s.due[0]));
     await page.waitForTimeout(300);
     await pinch(page);
-    await expect.poll(async () => (await st(page)).options, { timeout: 15_000 }).not.toBeNull();
+    try {
+      await expect.poll(async () => (await st(page)).options, { timeout: 15_000 }).not.toBeNull();
+    } catch (e) {
+      console.log('RECALL DEBUG', JSON.stringify({ state: await st(page), targets: await page.evaluate(() => (window as any).__loci.targets()) }));
+      await page.screenshot({ path: 'shots/e2e/recall-fail.png' });
+      throw e;
+    }
     const q = await st(page);
     await opts.shot?.(i);
     let idx = q.options!.indexOf(q.currentNotion!.answer);

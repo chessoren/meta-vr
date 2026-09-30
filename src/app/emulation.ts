@@ -27,6 +27,10 @@ export async function installEmulator(room: EmuRoom, deviceName = 'quest3'): Pro
     const json = await (await fetch(url)).json();
     device.sem?.loadEnvironment(json);
   }
+  // Emulator only: tint the synthetic grey room like a bedroom on a winter evening (warm, dim),
+  // so the desktop preview reads like the real thing. Real headsets show the real room.
+  const envCanvas = device.sem?.environmentCanvas;
+  if (envCanvas) envCanvas.style.filter = 'sepia(0.75) saturate(1.7) hue-rotate(-12deg) brightness(0.5) contrast(1.1)';
   (window as unknown as { __emu: Emulator }).__emu = { device, room };
   return { device, room };
 }
@@ -101,7 +105,7 @@ export function installDesktopControls(hands: { force: { pinch: string | null; p
   legend.innerHTML =
     '<b>Desktop preview</b> · move mouse: look · hold click: pinch · <kbd>Space</kbd> palm up · <kbd>M</kbd> menu · hold <kbd>F</kbd>: exit';
   legend.style.cssText =
-    'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;background:#1a120bcc;color:#f6e7c8;font:500 14px Inter,system-ui,sans-serif;padding:8px 16px;border-radius:999px;border:1px solid #e9b94955;pointer-events:none;white-space:nowrap';
+    'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:2147483647;background:#1a120bcc;color:#f6e7c8;font:500 14px Inter,system-ui,sans-serif;padding:8px 16px;border-radius:999px;border:1px solid #e9b94955;pointer-events:none;white-space:nowrap';
   document.body.appendChild(legend);
   apply();
 }

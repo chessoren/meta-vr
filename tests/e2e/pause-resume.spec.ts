@@ -45,7 +45,7 @@ test('pause/resume: headset off mid-placement and a full reload both resume exac
   await page.locator('#enter:not([disabled])').click({ timeout: 90_000 });
   await expect.poll(async () => (await st(page)).session, { timeout: 30_000 }).toBe(true);
   await expect.poll(async () => (await st(page)).flow?.step, { timeout: 60_000 }).toBe('place');
-  expect((await st(page)).placements).toBe(3);
+  await expect.poll(async () => (await st(page)).placements, { timeout: 30_000 }).toBe(3);
   await placeN(page, 2, targets.slice(3), 3);
   await expect.poll(async () => (await st(page)).flow?.step, { timeout: 120_000 }).toBe('recall');
   await recallN(page, 5, { startReviews: 0 });

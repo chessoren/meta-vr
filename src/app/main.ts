@@ -9,7 +9,7 @@ import { onboarding, type OnboardingStep } from './flows/onboarding';
 import { dailySession, importFlow, shelfFlow } from './flows/session';
 import { XR } from './xr/context';
 import { Hands } from './xr/hands';
-import { addTarget, clearTargets, getHovered, pinchSelection, removeTarget } from './xr/targeting';
+import { addTarget, clearTargets, debugTargets, getHovered, pinchSelection, removeTarget } from './xr/targeting';
 import { sfx } from './sfx';
 import { voice, findModelUrl } from './voice/voice';
 import { installRealVisuals, installAudio } from './wiring';
@@ -311,6 +311,7 @@ function installDebugHooks(app: App) {
     XR,
     THREE,
     lookAt: emuLookAt,
+    targets: debugTargets,
     pose: emuPose,
     menu: (id: string) => app.onMenu?.(id),
     /** Simulate taking the headset off / putting it back on. */

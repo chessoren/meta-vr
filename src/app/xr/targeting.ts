@@ -138,3 +138,8 @@ export function pinchSelection(): { target: Target | null; hand: HandState } | n
   }
   return null;
 }
+
+/** Debug: current targets and hover (tests). */
+export function debugTargets() {
+  return { hovered: hovered?.id ?? null, blocked: pinchBlocked, targets: [...targets.values()].filter((t) => t.enabled()).map((t) => `${t.kind}:${t.id}`) };
+}
