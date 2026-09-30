@@ -80,6 +80,7 @@ const STOPWORDS = new Set(
       'mean means meaning stand stands define definition used use uses make makes made get gets ' +
       'le la les l de du des un une quel quelle quels quelles est sont en dans au aux et ou qui que quoi par pour sur avec ' +
       'annee annees nom pays ville capitale ce cette ces se sa ses leur leurs il elle ils elles on ne pas plus moins tres ' +
+      'day days month months century centuries jour jours mois siecle siecles ' +
       'quest qu c d s n j m t y ete etait fut etre avoir fait faire'
   ),
 );
@@ -131,7 +132,8 @@ const CONCEPTS: Record<string, string[]> = parseTable(
     'revolution:fire,rooster bastille:castle landing:ship,wave peace:dove treaty:dove dna:flask,scientist gene:flask ' +
     'boiling:teacup,fire heat:fire,sun cold:snowflake,penguin ice:snowflake,penguin evolution:fish,frog species:fish,frog ' +
     'discovery:ship,telescope america:eagle,ship columbus:ship,globe liberty:bell,eagle freedom:dove,eagle wall:brickwall ' +
-    'photosynthesis:tree,sun plant:tree love:dove music:radio,bell novel:book writer:book',
+    'photosynthesis:tree,sun plant:tree love:dove music:radio,bell novel:book writer:book armistice:poppy,dove,clock,train ' +
+    'soviet:hammer,bear,star ussr:hammer,bear russia:bear german:eagle,zeppelin invasion:tank,soldier',
 );
 
 function parseTable(src: string): Record<string, string[]> {
@@ -422,6 +424,8 @@ interface Link {
   anim?: AnimId;
   /** 'part' link found on a tag rather than on the model's name. */
   viaTag?: boolean;
+  /** meaning link from the curated concept table (not cut for broad words). */
+  concept?: boolean;
   source: 'answer' | 'question';
 }
 
@@ -493,7 +497,7 @@ function linksFor(ws: Word[], source: 'answer' | 'question', context: Word[] = w
     for (const inf of all) {
       const e = inf.e;
       const m = meaningLink(w, inf);
-      if (m > 0) perWord.push(link(e, m, 'meaning', w, 0, n.length, source));
+      if (m > 0) perWord.push({ ...link(e, m, 'meaning', w, 0, n.length, source), concept: (w.concepts.get(e.id) ?? 0) >= m });
       if (w.pair) continue;
       if (inf.names.includes(n) || inf.names.includes(w.stem)) perWord.push(link(e, 12, 'exact', w, 0, n.length, source));
       // A "sound-alike" that is the whole word AND a meaning of it (water → wave) is just a
@@ -505,7 +509,8 @@ function linksFor(ws: Word[], source: 'answer' | 'question', context: Word[] = w
         for (const { t, isName } of inf.partTerms) {
           if ((!isName && source !== 'answer') || t === n || n.length - t.length < 3) continue;
           const at = n.startsWith(t) ? 0 : n.endsWith(t) ? n.length - t.length : -1;
-          if (at >= 0) perWord.push({ ...link(e, isName ? 10 : 7, 'part', w, at, at + t.length, source), viaTag: !isName });
+          // On the model's name it carries the scene (POWER-HOUSE); on a mere tag it only helps.
+          if (at >= 0) perWord.push({ ...link(e, isName ? 10 : 6, 'part', w, at, at + t.length, source), viaTag: !isName });
         }
       }
     }
@@ -523,8 +528,8 @@ function linksFor(ws: Word[], source: 'answer' | 'question', context: Word[] = w
     // Specificity: a word that means many things ("french": rooster, frog, cheese…) counts less.
     const meaningEntries = new Set(perWord.filter((l) => l.kind === 'meaning' && l.score >= 9).map((l) => l.entry.id));
     if (meaningEntries.size >= 2) {
-      const cut = 0.35 * Math.log2(meaningEntries.size);
-      for (const l of perWord) if (l.kind === 'meaning') l.score -= cut;
+      const cut = Math.min(0.7, 0.3 * Math.log2(meaningEntries.size));
+      for (const l of perWord) if (l.kind === 'meaning' && !l.concept) l.score -= cut;
     }
     out.push(...perWord);
   }
@@ -814,7 +819,7 @@ function soundCut(l: Link): PunCut | null {
 function answerDisplay(answer: string, w: Word | undefined, display: string): string {
   const a = clean(answer);
   if (!w || a.length > 40) return display;
-  const i = a.indexOf(w.raw);
+  const i = a.toLowerCase().indexOf(w.raw.toLowerCase());
   if (i < 0) return display;
   return a.slice(0, i) + display + a.slice(i + w.raw.length);
 }
@@ -890,7 +895,11 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
   const aLinks = linksFor(aWords, 'answer', aAll);
   for (const l of aLinks) if (qNorms.has(l.word.norm)) l.score -= 4; // the question already says it
   const qLinks = linksFor(qWords, 'question', qAll);
-  for (const l of qLinks) if (WEAK_Q.has(l.word.norm)) l.score -= 2.5;
+  for (const l of qLinks) {
+    if (WEAK_Q.has(l.word.norm)) l.score -= 2.5;
+    // On the question side the prop must recall the topic: its meaning beats a pun (peace → dove).
+    if (l.kind === 'meaning') l.score += 1.5;
+  }
 
   // Seeded tie-break jitter, drawn in catalog order so results do not depend on the link order.
   const jitter = new Map(info().map((i) => [i.e.id, rand()]));
@@ -968,7 +977,8 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
   if (heroSource !== 'question') {
     // …but no pun on a question word the hero already stands for (GLOBE = planet ↛ PLANE-t biplane).
     const heroQ = new Set(qLinks.filter((l) => l.entry.id === hero.id && l.score >= STRONG_LINK).map((l) => l.word.norm));
-    qProp = qRank.find((c) => !used.has(c.entry.id) && goodQuestionLink(c.link) && !(c.link.kind !== 'meaning' && heroQ.has(c.link.word.norm)));
+    const okProp = (c: Candidate) => !used.has(c.entry.id) && goodQuestionLink(c.link) && !(c.link.kind !== 'meaning' && heroQ.has(c.link.word.norm));
+    qProp = qRank.find((c) => okProp(c) && c.link.kind === 'meaning') ?? qRank.find(okProp);
     if (qProp) used.add(qProp.entry.id);
   }
 
@@ -1135,7 +1145,7 @@ export function composeSceneDetailed(question: string, answer: string, opts: Com
   if (countEntry && inScene(countEntry.id)) hooks.push(pluralOf(countEntry, count).hook);
   if (labelText) hooks.push(upper(labelText));
   hooks.push(...punHooks);
-  const capsPieces = (s: string) => s.split(/[-\s]/).filter((p) => p.length >= 2 && p === upper(p) && /\p{L}/u.test(p));
+  const capsPieces = (s: string) => s.split(/[-\s]/).filter((p) => p.length >= 2 && p === upper(p) && /\p{L}/u.test(p) && !STOPWORDS.has(fold(p)));
   hooks.push(...capsPieces(qDisp), ...capsPieces(countDisp));
   if (heroLink?.anim) hooks.push(verb);
   const finalHooks = [...new Set(hooks.map((h) => h.trim()).filter((h) => h && h === upper(h) && caption.includes(h)))];
